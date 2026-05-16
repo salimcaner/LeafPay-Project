@@ -171,13 +171,6 @@ body {
   background: #fff;
 }
 
-.field .hint {
-  font-size: 0.625rem;
-  color: rgba(8, 80, 65, 0.5);
-  margin-top: 0.2rem;
-  font-family: 'JetBrains Mono', monospace;
-}
-
 .pulse-dot {
   position: relative;
   width: 0.5rem;
@@ -242,23 +235,6 @@ body {
   color: #168562;
 }
 
-.step-indicator {
-  display: flex;
-  gap: 0.4rem;
-  margin: 0.95rem 0 1rem;
-}
-
-.step-indicator span {
-  height: 0.28rem;
-  flex: 1;
-  border-radius: 9999px;
-  background: #d7efe5;
-}
-
-.step-indicator span.active {
-  background: #1d9e75;
-}
-
 .choice-card {
   width: 100%;
   text-align: left;
@@ -293,13 +269,6 @@ body {
 .choice-card__icon--amber {
   background: #fff7ed;
   color: #ef9f27;
-}
-
-.select-input {
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207l5%205%205-5%22%20fill%3D%22none%22%20stroke%3D%22%23085041%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
 }
 
 .fade-in {
