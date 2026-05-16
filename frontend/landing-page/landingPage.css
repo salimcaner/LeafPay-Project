@@ -59,4 +59,4 @@
   .btn-outline { border: 1.5px solid #085041; color: #085041; }
   .btn-outline:hover { background: #085041; color: white; transform: translateY(-1px); }
   details > summary { list-style: none; cursor: pointer; }
-  details > summary::-webkit-details-marker { display: none; }
+  details > summary::-webkit-details-marker { display: none; }  
