@@ -17,17 +17,17 @@ function renderSidebar() {
 
       <nav class="px-3 py-4 flex-1 space-y-1">
         <div class="text-[10px] font-mono uppercase tracking-[0.18em] text-leaf-800/40 px-3 mb-2">Genel</div>
-        <a href="#" class="sidebar-link active">
+        <a href="#" class="sidebar-link active" data-nav="dashboard">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
           Ana Sayfa
         </a>
-        <a href="#" class="sidebar-link">
+        <a href="#" class="sidebar-link" data-nav="istatistikler">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>
           İstatistikler
         </a>
-        <a href="#" class="sidebar-link">
+        <a href="#" class="sidebar-link" data-nav="yesil-secenekler">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3C7.46 19.79 8.79 20 10 20a8 8 0 0 0 8-8c0-2-1-3.83-1-3.83Z"/></svg>
-          Yeşil Ürünler
+          Yeşil Seçenekler
         </a>
         <div class="text-[10px] font-mono uppercase tracking-[0.18em] text-leaf-800/40 px-3 mb-2 mt-5">Hesap</div>
         <a href="#" class="sidebar-link">
@@ -145,6 +145,22 @@ function bindLayoutEvents() {
     if (profileDropdown && !event.target.closest(".profile-menu")) {
       profileDropdown.classList.remove("open");
     }
+  });
+
+  document.querySelectorAll("[data-nav]").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const view = link.dataset.nav;
+
+      document.querySelectorAll("[data-nav]").forEach(l => l.classList.remove("active"));
+      link.classList.add("active");
+
+      if (view === "dashboard") {
+        renderDashboard();
+      } else if (view === "yesil-secenekler") {
+        renderGreenOptions();
+      }
+    });
   });
 }
 
