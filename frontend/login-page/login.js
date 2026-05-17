@@ -79,8 +79,6 @@ function getLoginSelectionView() {
           </div>
           <div class="flex items-start justify-between gap-4">
             <div>
-              <h3 class="font-bold text-base text-leaf-900">Satici / Sirket Girisi</h3>
-              <p class="text-sm text-leaf-800/60 mt-0.5">Account ID ve sifren ile yonetim paneline gec.</p>
               <h3 class="font-bold text-base text-leaf-900">Satıcı / Şirket Girişi</h3>
               <p class="text-sm text-leaf-800/60 mt-0.5">Kurumsal e-posta ve şifre ile yönetim paneline geç.</p>
             </div>
