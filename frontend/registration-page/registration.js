@@ -138,6 +138,7 @@ function getCustomerView() {
           <div class="field">
             <label>Soyad</label>
             <input name="musteri_soyad" type="text" required class="form-input" placeholder="Yılmaz" value="${escapeHtml(values.musteri_soyad)}" />
+
           </div>
         </div>
 
@@ -147,12 +148,15 @@ function getCustomerView() {
         </div>
 
         <div class="field">
+
           <label>Telefon Numarası</label>
           <input name="telefon_no" type="tel" required class="form-input" placeholder="05XX XXX XX XX" value="${escapeHtml(values.telefon_no)}" />
+
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div class="field">
+
             <label>Şifre</label>
             <input name="sifre" type="password" required class="form-input" placeholder="********" value="${escapeHtml(values.sifre)}" />
           </div>
@@ -201,6 +205,7 @@ function getSellerStep1View() {
       <form id="seller-form-1" class="space-y-3.5">
         ${getErrorMarkup()}
         <div class="field">
+
           <label>Şirket Adı (Ticari Unvan)</label>
           <input type="text" name="sirket_adi" required class="form-input" placeholder="Örn: Yeşilköy Tekstil A.Ş." value="${escapeHtml(values.sirket_adi)}" />
         </div>
@@ -291,21 +296,23 @@ function getSellerStep2View() {
         </div>
 
         <div class="field">
+
           <label>İletişim Numarası</label>
           <input name="telefon_no" type="tel" required class="form-input" placeholder="05XX XXX XX XX" value="${escapeHtml(values.telefon_no)}" />
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div class="field">
+
             <label>Şifre</label>
             <input name="sifre" type="password" required class="form-input" placeholder="********" value="${escapeHtml(values.sifre)}" />
+
           </div>
           <div class="field">
             <label>Şifre Tekrar</label>
             <input name="sifre_tekrar" type="password" required class="form-input" placeholder="********" value="${escapeHtml(values.sifre_tekrar)}" />
           </div>
         </div>
-
         <button type="submit" ${state.loading ? 'disabled' : ''} class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
           ${getSubmitLabel('Kaydı Tamamla')}
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
@@ -528,7 +535,9 @@ document.addEventListener('submit', (event) => {
   event.preventDefault();
 
   if (event.target.id === 'customer-form') {
+
     handleCustomerRegister(event.target);
+
     return;
   }
 
@@ -537,7 +546,18 @@ document.addEventListener('submit', (event) => {
     return;
   }
 
+<<<<<<< HEAD
   handleSellerRegister(event.target);
+=======
+<<<<<<< HEAD
+  if (event.target.id === 'seller-form-2') {
+    alert('Satici kaydiniz basariyla alindi. Onay sureciniz baslatildi.');
+    window.location.href = loginPageHref;
+  }
+=======
+  handleSellerRegister(event.target);
+>>>>>>> 9d9abfa (login ve registration ekranlarının backend bağlantısı yapıldı)
+>>>>>>> origin/feature/login/registration-page
 });
 
 document.addEventListener('DOMContentLoaded', () => {
