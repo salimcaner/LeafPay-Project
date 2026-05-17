@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from schemas import SaticiKayit, MusteriKayit, GirisYap
+from schemas import SaticiKayit, MusteriKayit, GirisYap, WebhookPayload
+from typing import Optional
 from database import supabase
 from security import sifreyi_hashle, sifreyi_dogrula, token_olustur, token_dogrula
 
@@ -121,6 +122,59 @@ def satici_giris(giris: GirisYap):
             "e_posta": satici["e_posta"],
         }
     }
+
+
+@app.post("/webhook/trendyol/{webhook_id}")
+def webhook_al(
+    webhook_id: str,
+    payload: WebhookPayload,
+    x_leafpay_secret: Optional[str] = Header(None),
+):
+    try:
+        satici_sonuc = supabase.table("saticilar").select("account_id, sirket_adi, webhook_secret").eq("webhook_id", webhook_id).execute()
+        print("[WEBHOOK] satici sorgu sonucu:", satici_sonuc.data)
+    except Exception as e:
+        print("[WEBHOOK] satici sorgu HATA:", str(e))
+        raise HTTPException(status_code=500, detail=f"Satıcı sorgu hatası: {str(e)}")
+
+    if not satici_sonuc.data:
+        raise HTTPException(status_code=404, detail="Webhook ID bulunamadı")
+
+    satici = satici_sonuc.data[0]
+
+    if x_leafpay_secret != satici["webhook_secret"]:
+        print("[WEBHOOK] Secret eşleşmedi. Gelen:", x_leafpay_secret, "Beklenen:", satici["webhook_secret"])
+        raise HTTPException(status_code=401, detail="Geçersiz secret key")
+
+    log_verisi = {
+        "satici_id": satici["account_id"],
+        "product_id": payload.product_id,
+        "option": payload.option,
+        "user_email": payload.user_email,
+        "order_id": payload.order_id,
+        "vera_points": payload.vera_points,
+    }
+    print("[WEBHOOK] insert verisi:", log_verisi)
+
+    try:
+        supabase.table("webhook_logs").insert(log_verisi).execute()
+        print("[WEBHOOK] insert başarılı")
+    except Exception as e:
+        print("[WEBHOOK] insert HATA:", str(e))
+        raise HTTPException(status_code=500, detail=f"Insert hatası: {str(e)}")
+
+    return {"status": "ok", "vera_points_awarded": payload.vera_points}
+
+
+@app.get("/satici/webhook-logs")
+def satici_webhook_logs(kullanici: dict = Depends(sadece_satici)):
+    sonuc = supabase.table("webhook_logs") \
+        .select("*") \
+        .eq("satici_id", kullanici["id"]) \
+        .order("created_at", desc=True) \
+        .limit(50) \
+        .execute()
+    return {"logs": sonuc.data}
 
 
 @app.post("/musteri/giris")

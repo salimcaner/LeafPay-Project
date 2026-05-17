@@ -1,28 +1,34 @@
-import os
-import bcrypt
-from jose import jwt
+from passlib.context import CryptContext
+from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 
-SECRET_KEY = os.getenv("SECRET_KEY", "leafpay-super-gizli-anahtar-2024")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+SECRET_KEY = "leafpay-demo-secret-key-change-in-prod"
 ALGORITHM = "HS256"
-TOKEN_SURE_DAKIKA = 60 * 24  # 24 saat
+TOKEN_GECERLILIK_GUN = 7
 
-def sifreyi_hashle(sifre: str) -> str:
-    return bcrypt.hashpw(sifre.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-def sifreyi_dogrula(sifre: str, hashli_sifre: str) -> bool:
-    return bcrypt.checkpw(sifre.encode("utf-8"), hashli_sifre.encode("utf-8"))
+def sifreyi_hashle(sifre: str):
+    return pwd_context.hash(sifre)
 
-def token_olustur(kullanici_id: int, e_posta: str, rol: str) -> str:
-    bitis = datetime.now(timezone.utc) + timedelta(minutes=TOKEN_SURE_DAKIKA)
-    veri = {"sub": e_posta, "id": kullanici_id, "rol": rol, "exp": bitis}
-    return jwt.encode(veri, SECRET_KEY, algorithm=ALGORITHM)
+
+def sifreyi_dogrula(duz_sifre: str, hashli_sifre: str):
+    return pwd_context.verify(duz_sifre, hashli_sifre)
+
+
+def token_olustur(id: int, e_posta: str, rol: str) -> str:
+    payload = {
+        "id": id,
+        "e_posta": e_posta,
+        "rol": rol,
+        "exp": datetime.now(timezone.utc) + timedelta(days=TOKEN_GECERLILIK_GUN),
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def token_dogrula(token: str) -> dict:
     try:
-        veri = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return veri
-    except jwt.ExpiredSignatureError:
-        raise ValueError("Token süresi dolmuş")
-    except jwt.JWTError:
-        raise ValueError("Geçersiz token")
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError as e:
+        raise ValueError(f"Geçersiz token: {str(e)}")

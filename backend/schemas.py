@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
+from typing import Optional
 
 class GirisYap(BaseModel):
     e_posta: EmailStr
@@ -21,6 +22,14 @@ class SaticiKayit(BaseModel):
         if len(v) < 8:
             raise ValueError("Şifre en az 8 karakter olmalıdır")
         return v
+
+class WebhookPayload(BaseModel):
+    product_id: str
+    option: str
+    user_email: str
+    order_id: str
+    vera_points: int
+
 
 class MusteriKayit(BaseModel):
     musteri_ad: str
