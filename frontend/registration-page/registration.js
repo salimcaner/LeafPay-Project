@@ -546,19 +546,8 @@ document.addEventListener('submit', (event) => {
     return;
   }
 
-<<<<<<< HEAD
   handleSellerRegister(event.target);
-=======
-<<<<<<< HEAD
-  if (event.target.id === 'seller-form-2') {
-    alert('Satici kaydiniz basariyla alindi. Onay sureciniz baslatildi.');
-    window.location.href = loginPageHref;
-  }
-=======
-  handleSellerRegister(event.target);
->>>>>>> 9d9abfa (login ve registration ekranlarının backend bağlantısı yapıldı)
->>>>>>> origin/feature/login/registration-page
-});
+
 
 document.addEventListener('DOMContentLoaded', () => {
   if (redirectAuthenticated(getRedirectForRole('satici'), 'satici')) return;
