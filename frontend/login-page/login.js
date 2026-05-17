@@ -14,13 +14,13 @@ function getLoginSelectionView() {
   return `
     <div class="form-shell leaf-shadow fade-in">
       <div class="flex gap-1 p-1 bg-leaf-100/70 rounded-2xl mb-5">
-        <a href="${registrationPageHref}" class="tab-btn">Kayit Ol</a>
-        <div class="tab-btn active">Giris Yap</div>
+        <a href="${registrationPageHref}" class="tab-btn">Kayıt Ol</a>
+        <div class="tab-btn active">Giriş Yap</div>
       </div>
 
-      <div class="eyebrow mb-2">01 - Giris Tipi</div>
-      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Hesabina don.</h2>
-      <p class="mt-1.5 text-sm text-leaf-800/65">Giris yapmak istedigin hesap turunu sec ve ayni akis icinde ilerle.</p>
+      <div class="eyebrow mb-2">01 - Giriş Tipi</div>
+      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Hesabına dön.</h2>
+      <p class="mt-1.5 text-sm text-leaf-800/65">Giriş yapmak istediğin hesap türünü seç ve aynı akış içinde ilerle.</p>
 
       <div class="mt-5 space-y-3">
         <button type="button" data-login-view="customer-login" class="choice-card">
@@ -29,8 +29,8 @@ function getLoginSelectionView() {
           </div>
           <div class="flex items-start justify-between gap-4">
             <div>
-              <h3 class="font-bold text-base text-leaf-900">Musteri Girisi</h3>
-              <p class="text-sm text-leaf-800/60 mt-0.5">E-posta ve sifren ile hesabina giris yap.</p>
+              <h3 class="font-bold text-base text-leaf-900">Müşteri Girişi</h3>
+              <p class="text-sm text-leaf-800/60 mt-0.5">E-posta ve şifren ile hesabına giriş yap.</p>
             </div>
             <span class="text-leaf-500 mt-1">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
@@ -44,8 +44,8 @@ function getLoginSelectionView() {
           </div>
           <div class="flex items-start justify-between gap-4">
             <div>
-              <h3 class="font-bold text-base text-leaf-900">Satici / Sirket Girisi</h3>
-              <p class="text-sm text-leaf-800/60 mt-0.5">Account ID ve sifren ile yonetim paneline gec.</p>
+              <h3 class="font-bold text-base text-leaf-900">Satıcı / Şirket Girişi</h3>
+              <p class="text-sm text-leaf-800/60 mt-0.5">Account ID ve şifren ile yönetim paneline geç.</p>
             </div>
             <span class="text-amber-500 mt-1">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
@@ -55,8 +55,8 @@ function getLoginSelectionView() {
       </div>
 
       <div class="mt-5 text-center text-sm text-leaf-800/70">
-        Hesabin yok mu?
-        <a href="${registrationPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Kayit Ol</a>
+        Hesabın yok mu?
+        <a href="${registrationPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Kayıt Ol</a>
       </div>
     </div>
   `;
@@ -70,13 +70,13 @@ function getCustomerLoginView() {
       </button>
 
       <div class="flex gap-1 p-1 bg-leaf-100/70 rounded-2xl mb-5">
-        <div class="tab-btn active">Musteri</div>
-        <button type="button" data-login-view="seller-login" class="tab-btn">Satici / Sirket</button>
+        <div class="tab-btn active">Müşteri</div>
+        <button type="button" data-login-view="seller-login" class="tab-btn">Satıcı / Şirket</button>
       </div>
 
-      <div class="eyebrow mb-2">02 - Musteri Girisi</div>
-      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Tekrar hos geldin.</h2>
-      <p class="mt-1.5 text-sm text-leaf-800/65">Musteri hesabina devam etmek icin e-posta ve sifreni gir.</p>
+      <div class="eyebrow mb-2">02 - Müşteri Girişi</div>
+      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Tekrar hoş geldin.</h2>
+      <p class="mt-1.5 text-sm text-leaf-800/65">Müşteri hesabına devam etmek için e-posta ve şifreni gir.</p>
 
       <form id="customer-login-form" class="mt-5 space-y-3.5">
         <div class="field">
@@ -85,19 +85,19 @@ function getCustomerLoginView() {
         </div>
 
         <div class="field">
-          <label>Sifre</label>
+          <label>Şifre</label>
           <input type="password" required class="form-input" placeholder="********" />
         </div>
 
         <button type="submit" class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
-          Giris Yap
+          Giriş Yap
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
         </button>
       </form>
 
       <div class="mt-4 text-center text-sm text-leaf-800/70">
-        Hesabin yok mu?
-        <a href="${registrationPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Kayit Ol</a>
+        Hesabın yok mu?
+        <a href="${registrationPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Kayıt Ol</a>
       </div>
     </div>
   `;
@@ -111,13 +111,13 @@ function getSellerLoginView() {
       </button>
 
       <div class="flex gap-1 p-1 bg-leaf-100/70 rounded-2xl mb-5">
-        <button type="button" data-login-view="customer-login" class="tab-btn">Musteri</button>
-        <div class="tab-btn active">Satici / Sirket</div>
+        <button type="button" data-login-view="customer-login" class="tab-btn">Müşteri</button>
+        <div class="tab-btn active">Satıcı / Şirket</div>
       </div>
 
-      <div class="eyebrow mb-2">03 - Satici Girisi</div>
-      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Sirket paneline gec.</h2>
-      <p class="mt-1.5 text-sm text-leaf-800/65">Account ID ve sifre ile yonetim hesabina dogrudan eris.</p>
+      <div class="eyebrow mb-2">03 - Satıcı Girişi</div>
+      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Şirket paneline geç.</h2>
+      <p class="mt-1.5 text-sm text-leaf-800/65">Account ID ve şifre ile yönetim hesabına doğrudan eriş.</p>
 
       <form id="seller-login-form" class="mt-5 space-y-3.5">
         <div class="field">
@@ -126,19 +126,19 @@ function getSellerLoginView() {
         </div>
 
         <div class="field">
-          <label>Sifre</label>
+          <label>Şifre</label>
           <input type="password" required class="form-input" placeholder="********" />
         </div>
 
         <button type="submit" class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
-          Giris Yap
+          Giriş Yap
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
         </button>
       </form>
 
       <div class="mt-4 text-center text-sm text-leaf-800/70">
-        Hesabin yok mu?
-        <a href="${registrationPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Kayit Ol</a>
+        Hesabın yok mu?
+        <a href="${registrationPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Kayıt Ol</a>
       </div>
     </div>
   `;
@@ -172,13 +172,13 @@ document.addEventListener('submit', (event) => {
   event.preventDefault();
 
   if (event.target.id === 'customer-login-form') {
-    alert('Musteri girisi yapiliyor...');
+    alert('Müşteri girişi yapılıyor...');
     window.location.href = registrationPageHref;
     return;
   }
 
   if (event.target.id === 'seller-login-form') {
-    alert('Satici girisi yapiliyor...');
+    alert('Satıcı girişi yapılıyor...');
     window.location.href = registrationPageHref;
   }
 });

@@ -15,13 +15,13 @@ function getSelectionView() {
   return `
     <div class="form-shell leaf-shadow fade-in">
       <div class="flex gap-1 p-1 bg-leaf-100/70 rounded-2xl mb-5">
-        <div class="tab-btn active">Kayit Ol</div>
-        <a href="${loginPageHref}" class="tab-btn">Giris Yap</a>
+        <div class="tab-btn active">Kayıt Ol</div>
+        <a href="${loginPageHref}" class="tab-btn">Giriş Yap</a>
       </div>
 
-      <div class="eyebrow mb-2">01 - Rol Secimi</div>
-      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Aramiza katil.</h2>
-      <p class="mt-1.5 text-sm text-leaf-800/65">Surdurulebilir ekonomideki rolunu sec ve mevcut kayit akisina devam et.</p>
+      <div class="eyebrow mb-2">01 - Rol Seçimi</div>
+      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Aramıza katıl.</h2>
+      <p class="mt-1.5 text-sm text-leaf-800/65">Sürdürülebilir ekonomideki rolünü seç ve mevcut kayıt akışına devam et.</p>
 
       <div class="mt-5 space-y-3">
         <button type="button" data-view="customer" class="choice-card">
@@ -30,8 +30,8 @@ function getSelectionView() {
           </div>
           <div class="flex items-start justify-between gap-4">
             <div>
-              <h3 class="font-bold text-base text-leaf-900">Musteri Ol</h3>
-              <p class="text-sm text-leaf-800/60 mt-0.5">Surdurulebilir alisveris yap, VERA puan kazan.</p>
+              <h3 class="font-bold text-base text-leaf-900">Müşteri Ol</h3>
+              <p class="text-sm text-leaf-800/60 mt-0.5">Sürdürülebilir alışveriş yap, VERA puan kazan.</p>
             </div>
             <span class="text-leaf-500 mt-1">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
@@ -45,8 +45,8 @@ function getSelectionView() {
           </div>
           <div class="flex items-start justify-between gap-4">
             <div>
-              <h3 class="font-bold text-base text-leaf-900">Satici / Marka Ol</h3>
-              <p class="text-sm text-leaf-800/60 mt-0.5">Iki adimli basvuru ile markani yesil ekonomiye kaydet.</p>
+              <h3 class="font-bold text-base text-leaf-900">Satıcı / Marka Ol</h3>
+              <p class="text-sm text-leaf-800/60 mt-0.5">İki adımlı başvuru ile markanı yeşil ekonomiye kaydet.</p>
             </div>
             <span class="text-amber-500 mt-1">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
@@ -56,8 +56,8 @@ function getSelectionView() {
       </div>
 
       <div class="mt-5 text-center text-sm text-leaf-800/70">
-        Zaten hesabin var mi?
-        <a href="${loginPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Giris Yap</a>
+        Zaten hesabın var mı?
+        <a href="${loginPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Giriş Yap</a>
       </div>
     </div>
   `;
@@ -71,13 +71,13 @@ function getCustomerView() {
       </button>
 
       <div class="flex gap-1 p-1 bg-leaf-100/70 rounded-2xl mb-5">
-        <div class="tab-btn active">Musteri Kaydi</div>
-        <button type="button" data-view="seller-step-1" class="tab-btn">Satici Kaydi</button>
+        <div class="tab-btn active">Müşteri Kaydı</div>
+        <button type="button" data-view="seller-step-1" class="tab-btn">Satıcı Kaydı</button>
       </div>
 
-      <div class="eyebrow mb-2">02 - Musteri Kaydi</div>
-      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Hesabini olustur.</h2>
-      <p class="mt-1.5 text-sm text-leaf-800/65">Form sirasi ayni kalir, sadece deneyim yeni arayuze uyarlanir.</p>
+      <div class="eyebrow mb-2">02 - Müşteri Kaydı</div>
+      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Hesabını oluştur.</h2>
+      <p class="mt-1.5 text-sm text-leaf-800/65">Form sırası aynı kalır, sadece deneyim yeni arayüze uyarlanır.</p>
 
       <form id="customer-form" class="mt-5 space-y-3.5">
         <div class="grid grid-cols-2 gap-3">
@@ -87,7 +87,7 @@ function getCustomerView() {
           </div>
           <div class="field">
             <label>Soyad</label>
-            <input type="text" required class="form-input" placeholder="Yilmaz" />
+            <input type="text" required class="form-input" placeholder="Yılmaz" />
           </div>
         </div>
 
@@ -97,30 +97,30 @@ function getCustomerView() {
         </div>
 
         <div class="field">
-          <label>Telefon Numarasi</label>
+          <label>Telefon Numarası</label>
           <input type="tel" required class="form-input" placeholder="05XX XXX XX XX" />
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div class="field">
-            <label>Sifre</label>
+            <label>Şifre</label>
             <input type="password" required class="form-input" placeholder="********" />
           </div>
           <div class="field">
-            <label>Sifre Tekrar</label>
+            <label>Şifre Tekrar</label>
             <input type="password" required class="form-input" placeholder="********" />
           </div>
         </div>
 
         <button type="submit" class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
-          Kayit Ol
+          Kayıt Ol
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
         </button>
       </form>
 
       <div class="mt-4 text-center text-sm text-leaf-800/70">
-        Zaten hesabin var mi?
-        <a href="${loginPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Giris Yap</a>
+        Zaten hesabın var mı?
+        <a href="${loginPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Giriş Yap</a>
       </div>
     </div>
   `;
@@ -134,13 +134,13 @@ function getSellerStep1View() {
       </button>
 
       <div class="flex gap-1 p-1 bg-leaf-100/70 rounded-2xl mb-5">
-        <button type="button" data-view="customer" class="tab-btn">Musteri</button>
-        <div class="tab-btn active">Satici</div>
+        <button type="button" data-view="customer" class="tab-btn">Müşteri</button>
+        <div class="tab-btn active">Satıcı</div>
       </div>
 
-      <div class="eyebrow mb-2">03 - Satici Hesabi</div>
-      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Satici kaydini baslat.</h2>
-      <p class="mt-1.5 text-sm text-leaf-800/65">Ilk adimda sirket bilgilerini aliyoruz, ikinci adim mevcut akista aynen devam eder.</p>
+      <div class="eyebrow mb-2">03 - Satıcı Hesabı</div>
+      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Satıcı kaydını başlat.</h2>
+      <p class="mt-1.5 text-sm text-leaf-800/65">İlk adımda şirket bilgilerini alıyoruz, ikinci adım mevcut akışta aynen devam eder.</p>
 
       <div class="step-indicator">
         <span class="active"></span>
@@ -149,50 +149,50 @@ function getSellerStep1View() {
 
       <form id="seller-form-1" class="space-y-3.5">
         <div class="field">
-          <label>Sirket Adi (Ticari Unvan)</label>
-          <input type="text" name="companyName" required class="form-input" placeholder="Orn: Yesilkoy Tekstil A.S." />
+          <label>Şirket Adı (Ticari Unvan)</label>
+          <input type="text" name="companyName" required class="form-input" placeholder="Örn: Yeşilköy Tekstil A.Ş." />
         </div>
 
         <div class="field">
-          <label>Vergi Numarasi</label>
-          <input type="text" name="taxNumber" required class="form-input" placeholder="10 Haneli Vergi No" pattern="[0-9]{10}" title="Lutfen 10 haneli vergi numaranizi girin" />
-          <div class="hint">Tuzel kisi basvurularinda 10 haneli vergi numarasi kullanilir.</div>
+          <label>Vergi Numarası</label>
+          <input type="text" name="taxNumber" required class="form-input" placeholder="10 Haneli Vergi No" pattern="[0-9]{10}" title="Lütfen 10 haneli vergi numaranızı girin" />
+          <div class="hint">Tüzel kişi başvurularında 10 haneli vergi numarası kullanılır.</div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div class="field">
-            <label>Sirket Turu</label>
+            <label>Şirket Türü</label>
             <select name="companyType" required class="form-input select-input">
-              <option value="" disabled selected>Seciniz</option>
-              <option value="as">Anonim Sirket (A.S.)</option>
-              <option value="ltd">Limited Sirket (Ltd. Sti.)</option>
-              <option value="sahis">Sahis Sirketi</option>
-              <option value="diger">Diger</option>
+              <option value="" disabled selected>Seçiniz</option>
+              <option value="as">Anonim Şirket (A.Ş.)</option>
+              <option value="ltd">Limited Şirket (Ltd. Şti.)</option>
+              <option value="sahis">Şahıs Şirketi</option>
+              <option value="diger">Diğer</option>
             </select>
           </div>
           <div class="field">
-            <label>Sektor</label>
+            <label>Sektör</label>
             <select name="sector" required class="form-input select-input">
-              <option value="" disabled selected>Seciniz</option>
+              <option value="" disabled selected>Seçiniz</option>
               <option value="tekstil">Tekstil</option>
-              <option value="gida">Gida</option>
+              <option value="gida">Gıda</option>
               <option value="kozmetik">Kozmetik</option>
-              <option value="ev-yasam">Ev & Yasam</option>
+              <option value="ev-yasam">Ev & Yaşam</option>
               <option value="teknoloji">Teknoloji</option>
-              <option value="diger">Diger</option>
+              <option value="diger">Diğer</option>
             </select>
           </div>
         </div>
 
         <button type="submit" class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
-          Ileri
+          İleri
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
         </button>
       </form>
 
       <div class="mt-4 text-center text-sm text-leaf-800/70">
-        Zaten hesabin var mi?
-        <a href="${loginPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Giris Yap</a>
+        Zaten hesabın var mı?
+        <a href="${loginPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Giriş Yap</a>
       </div>
     </div>
   `;
@@ -206,13 +206,13 @@ function getSellerStep2View() {
       </button>
 
       <div class="flex gap-1 p-1 bg-leaf-100/70 rounded-2xl mb-5">
-        <button type="button" data-view="customer" class="tab-btn">Musteri</button>
-        <div class="tab-btn active">Satici</div>
+        <button type="button" data-view="customer" class="tab-btn">Müşteri</button>
+        <div class="tab-btn active">Satıcı</div>
       </div>
 
       <div class="eyebrow mb-2">04 - Yetkili Bilgileri</div>
-      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Kaydi tamamla.</h2>
-      <p class="mt-1.5 text-sm text-leaf-800/65">Ikinci adim mevcut submit davranisi ile aynen korunur.</p>
+      <h2 class="text-2xl lg:text-[2rem] font-black text-leaf-900 tracking-tight leading-tight">Kaydı tamamla.</h2>
+      <p class="mt-1.5 text-sm text-leaf-800/65">İkinci adım mevcut submit davranışı ile aynen korunur.</p>
 
       <div class="step-indicator">
         <span class="active"></span>
@@ -222,11 +222,11 @@ function getSellerStep2View() {
       <form id="seller-form-2" class="space-y-3.5">
         <div class="grid grid-cols-2 gap-3">
           <div class="field">
-            <label>Yetkili Adi</label>
-            <input type="text" required class="form-input" placeholder="Ayse" />
+            <label>Yetkili Adı</label>
+            <input type="text" required class="form-input" placeholder="Ayşe" />
           </div>
           <div class="field">
-            <label>Soyadi</label>
+            <label>Soyadı</label>
             <input type="text" required class="form-input" placeholder="Kaya" />
           </div>
         </div>
@@ -237,30 +237,30 @@ function getSellerStep2View() {
         </div>
 
         <div class="field">
-          <label>Iletisim Numarasi</label>
+          <label>İletişim Numarası</label>
           <input type="tel" required class="form-input" placeholder="05XX XXX XX XX" />
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div class="field">
-            <label>Sifre</label>
+            <label>Şifre</label>
             <input type="password" required class="form-input" placeholder="********" />
           </div>
           <div class="field">
-            <label>Sifre Tekrar</label>
+            <label>Şifre Tekrar</label>
             <input type="password" required class="form-input" placeholder="********" />
           </div>
         </div>
 
         <button type="submit" class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
-          Kaydi Tamamla
+          Kaydı Tamamla
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
         </button>
       </form>
 
       <div class="mt-4 text-center text-sm text-leaf-800/70">
-        Zaten hesabin var mi?
-        <a href="${loginPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Giris Yap</a>
+        Zaten hesabın var mı?
+        <a href="${loginPageHref}" class="font-semibold text-leaf-700 hover:text-leaf-500 transition">Giriş Yap</a>
       </div>
     </div>
   `;
@@ -296,7 +296,7 @@ document.addEventListener('submit', (event) => {
   event.preventDefault();
 
   if (event.target.id === 'customer-form') {
-    alert('Musteri kaydiniz basariyla olusturuldu!');
+    alert('Müşteri kaydınız başarıyla oluşturuldu!');
     window.location.href = loginPageHref;
     return;
   }
@@ -309,7 +309,7 @@ document.addEventListener('submit', (event) => {
   }
 
   if (event.target.id === 'seller-form-2') {
-    alert('Satici kaydiniz basariyla alindi. Onay sureciniz baslatildi.');
+    alert('Satıcı kaydınız başarıyla alındı. Onay süreciniz başlatıldı.');
     window.location.href = loginPageHref;
   }
 });

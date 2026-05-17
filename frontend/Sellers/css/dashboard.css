@@ -1,1 +1,21 @@
+.dashboard-wrap { padding:2rem 1.5rem; max-width:80rem; margin:0 auto; }
+.stat-card { background:white; border-radius:24px; padding:24px; border:1px solid #E1F5EE; transition: all .2s; }
+.stat-card:hover { transform:translateY(-2px); box-shadow: 0 12px 32px -8px rgba(8,80,65,0.12); }
+.progress-bar { height:6px; background:#E1F5EE; border-radius:999px; overflow:hidden; }
+.progress-fill { height:100%; background:#1D9E75; border-radius:999px; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+.green-opt { background:white; border:1px solid #E1F5EE; border-radius:16px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; transition:all .2s; }
+.green-opt:hover { border-color:#4FB893; transform:translateY(-1px); }
+.toggle { width:40px; height:22px; border-radius:999px; background:#1D9E75; display:flex; align-items:center; padding:2px; cursor:pointer; transition:background .2s; }
+.toggle .knob { width:18px; height:18px; border-radius:50%; background:white; margin-left:auto; transition: margin .2s; }
+.toggle.off { background:#E1F5EE; }
+.toggle.off .knob { margin-left:0; }
+.activity-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:14px; transition: background .15s; }
+.activity-row:hover { background:#F1FAF6; }
+.dashboard-wrap h1 { color:#053A30; font-weight:900; letter-spacing:-0.03em; }
+.dashboard-wrap .dashboard-subtitle { color:rgba(15,106,79,.72); font-size:14px; }
+.dashboard-wrap .eyebrow { font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; }
+.dashboard-wrap .metric-number { color:#053A30; font-weight:900; }
 
+@media (max-width: 1023px) {
+  .dashboard-wrap { padding:1.25rem 1rem 1.5rem; }
+}
