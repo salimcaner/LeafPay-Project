@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(C:\\\\Users\\\\caner\\\\Desktop\\\\LeafPay\\\\backend\\\\venv\\\\Scripts\\\\pip.exe install \"python-jose[cryptography]\" 2>&1)"
+    ]
+  }
+}
