@@ -1,13 +1,48 @@
 const loginState = {
   view: 'login-selection',
+  loading: false,
+  error: '',
+  formData: {
+    musteri: { e_posta: '', sifre: '' },
+    satici: { e_posta: '', sifre: '' },
+  },
 };
 
 const loginRoot = document.getElementById('app-root');
 const registrationPageHref = '../registration-page/registration.html';
+const sellerDashboardHref = '../Sellers/index.html';
+const customerRedirectHref = '../landing-page/landingpage.html';
+
+function getRedirectForRole(role) {
+  return role === 'satici' ? sellerDashboardHref : customerRedirectHref;
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function getRoleFormData(role) {
+  return loginState.formData[role] || { e_posta: '', sifre: '' };
+}
 
 function navigateLogin(view) {
   loginState.view = view;
+  loginState.error = '';
+  loginState.loading = false;
   renderLogin();
+}
+
+function getErrorMarkup() {
+  if (!loginState.error) return '';
+  return `<div class="form-alert form-alert--error">${escapeHtml(loginState.error)}</div>`;
+}
+
+function getSubmitLabel() {
+  return loginState.loading ? 'İşleniyor...' : 'Giriş Yap';
 }
 
 function getLoginSelectionView() {
@@ -46,6 +81,8 @@ function getLoginSelectionView() {
             <div>
               <h3 class="font-bold text-base text-leaf-900">Satici / Sirket Girisi</h3>
               <p class="text-sm text-leaf-800/60 mt-0.5">Account ID ve sifren ile yonetim paneline gec.</p>
+              <h3 class="font-bold text-base text-leaf-900">Satıcı / Şirket Girişi</h3>
+              <p class="text-sm text-leaf-800/60 mt-0.5">Kurumsal e-posta ve şifre ile yönetim paneline geç.</p>
             </div>
             <span class="text-amber-500 mt-1">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
@@ -63,8 +100,9 @@ function getLoginSelectionView() {
 }
 
 function getCustomerLoginView() {
+  const values = getRoleFormData('musteri');
   return `
-    <div class="form-shell leaf-shadow relative fade-in">
+    <div class="form-shell leaf-shadow relative fade-in ${loginState.loading ? 'is-loading' : ''}">
       <button type="button" data-login-view="login-selection" class="absolute top-4 right-4 text-leaf-800/35 hover:text-leaf-800 transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
       </button>
@@ -79,18 +117,19 @@ function getCustomerLoginView() {
       <p class="mt-1.5 text-sm text-leaf-800/65">Musteri hesabina devam etmek icin e-posta ve sifreni gir.</p>
 
       <form id="customer-login-form" class="mt-5 space-y-3.5">
+        ${getErrorMarkup()}
         <div class="field">
           <label>E-posta</label>
-          <input type="email" required class="form-input" placeholder="ornek@eposta.com" />
+          <input name="e_posta" type="email" required class="form-input" placeholder="ornek@eposta.com" value="${escapeHtml(values.e_posta)}" />
         </div>
 
         <div class="field">
-          <label>Sifre</label>
-          <input type="password" required class="form-input" placeholder="********" />
+          <label>Şifre</label>
+          <input name="sifre" type="password" required class="form-input" placeholder="********" value="${escapeHtml(values.sifre)}" />
         </div>
 
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
-          Giris Yap
+        <button type="submit" ${loginState.loading ? 'disabled' : ''} class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
+          ${getSubmitLabel()}
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
         </button>
       </form>
@@ -104,8 +143,9 @@ function getCustomerLoginView() {
 }
 
 function getSellerLoginView() {
+  const values = getRoleFormData('satici');
   return `
-    <div class="form-shell leaf-shadow relative fade-in">
+    <div class="form-shell leaf-shadow relative fade-in ${loginState.loading ? 'is-loading' : ''}">
       <button type="button" data-login-view="login-selection" class="absolute top-4 right-4 text-leaf-800/35 hover:text-leaf-800 transition">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
       </button>
@@ -120,18 +160,19 @@ function getSellerLoginView() {
       <p class="mt-1.5 text-sm text-leaf-800/65">Account ID ve sifre ile yonetim hesabina dogrudan eris.</p>
 
       <form id="seller-login-form" class="mt-5 space-y-3.5">
+        ${getErrorMarkup()}
         <div class="field">
-          <label>Account ID</label>
-          <input type="text" required class="form-input" placeholder="LP-SELLER-001" />
+          <label>Kurumsal E-posta</label>
+          <input name="e_posta" type="email" required class="form-input" placeholder="marka@sirket.com" value="${escapeHtml(values.e_posta)}" />
         </div>
 
         <div class="field">
-          <label>Sifre</label>
-          <input type="password" required class="form-input" placeholder="********" />
+          <label>Şifre</label>
+          <input name="sifre" type="password" required class="form-input" placeholder="********" value="${escapeHtml(values.sifre)}" />
         </div>
 
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
-          Giris Yap
+        <button type="submit" ${loginState.loading ? 'disabled' : ''} class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-full btn-primary font-semibold mt-1">
+          ${getSubmitLabel()}
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
         </button>
       </form>
@@ -155,6 +196,44 @@ function renderLogin() {
   loginRoot.innerHTML = template();
 }
 
+async function handleLoginSubmit(role, form) {
+  const formData = new FormData(form);
+  const credentials = {
+    e_posta: String(formData.get('e_posta') || '').trim(),
+    sifre: String(formData.get('sifre') || '').trim(),
+  };
+
+  loginState.formData[role] = credentials;
+
+  if (!credentials.e_posta) {
+    loginState.error = 'E-posta alanı zorunludur.';
+    renderLogin();
+    return;
+  }
+
+  if (!credentials.sifre) {
+    loginState.error = 'Şifre alanı zorunludur.';
+    renderLogin();
+    return;
+  }
+
+  loginState.loading = true;
+  loginState.error = '';
+  renderLogin();
+
+  try {
+    const authResult = await login(role, credentials);
+    if (authResult.token && authResult.user) {
+      persistAuth(authResult);
+    }
+    window.location.href = getRedirectForRole(role);
+  } catch (error) {
+    loginState.error = error.message || 'Giriş işlemi başarısız oldu.';
+    loginState.loading = false;
+    renderLogin();
+  }
+}
+
 document.addEventListener('click', (event) => {
   const trigger = event.target.closest('[data-login-view]');
   if (trigger) {
@@ -169,18 +248,15 @@ document.addEventListener('click', (event) => {
 });
 
 document.addEventListener('submit', (event) => {
+  if (event.target.id !== 'customer-login-form' && event.target.id !== 'seller-login-form') return;
+
   event.preventDefault();
-
-  if (event.target.id === 'customer-login-form') {
-    alert('Musteri girisi yapiliyor...');
-    window.location.href = registrationPageHref;
-    return;
-  }
-
-  if (event.target.id === 'seller-login-form') {
-    alert('Satici girisi yapiliyor...');
-    window.location.href = registrationPageHref;
-  }
+  const role = event.target.id === 'seller-login-form' ? 'satici' : 'musteri';
+  handleLoginSubmit(role, event.target);
 });
 
-document.addEventListener('DOMContentLoaded', renderLogin);
+document.addEventListener('DOMContentLoaded', () => {
+  if (redirectAuthenticated(getRedirectForRole('satici'), 'satici')) return;
+  if (redirectAuthenticated(getRedirectForRole('musteri'), 'musteri')) return;
+  renderLogin();
+});
