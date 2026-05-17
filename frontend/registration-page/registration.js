@@ -548,6 +548,7 @@ document.addEventListener('submit', (event) => {
 
   handleSellerRegister(event.target);
 
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   if (redirectAuthenticated(getRedirectForRole('satici'), 'satici')) return;
