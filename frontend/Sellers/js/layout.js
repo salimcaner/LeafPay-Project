@@ -55,6 +55,7 @@ function renderSidebar() {
 }
 
 function handleLogout() {
+  logout();
   window.location.href = "../login-page/login.html";
 }
 
@@ -88,7 +89,7 @@ function renderTopbar() {
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             Profil
           </a>
-          <a href="../login-page/login.html" class="danger hover:bg-red-50 transition-colors">
+          <a href="../login-page/login.html" data-logout-link class="danger hover:bg-red-50 transition-colors">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             Çıkış Yap
           </a>
@@ -101,6 +102,7 @@ function renderTopbar() {
 function bindLayoutEvents() {
   const sidebarOpenButton = document.querySelector("[data-open-sidebar]");
   const logoutButton = document.querySelector("[data-logout-button]");
+  const logoutLink = document.querySelector("[data-logout-link]");
   const profileToggle = document.querySelector("[data-profile-toggle]");
   const profileDropdown = document.getElementById("profile-dropdown");
 
@@ -130,6 +132,13 @@ function bindLayoutEvents() {
 
   if (logoutButton) {
     logoutButton.addEventListener("click", handleLogout);
+  }
+
+  if (logoutLink) {
+    logoutLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      handleLogout();
+    });
   }
 
   document.addEventListener("click", (event) => {
