@@ -1,0 +1,46 @@
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', sans-serif; color: #2C2C2A; background: #F8F9F6; -webkit-font-smoothing: antialiased; margin: 0; }
+.badge-ring { background: conic-gradient(from 90deg, #1D9E75 0%, #4FB893 25%, #1D9E75 50%, #085041 75%, #1D9E75 100%); }
+@keyframes float { 0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-8px) rotate(2deg);} }
+.float { animation: float 6s ease-in-out infinite; }
+@keyframes spin-slow { from{transform:rotate(0);}to{transform:rotate(360deg);} }
+.spin-slow { animation: spin-slow 30s linear infinite; }
+.leaf-shadow { box-shadow: 0 20px 40px -12px rgba(8,80,65,0.20), 0 6px 16px -6px rgba(8,80,65,0.12); }
+.tier-elevated { box-shadow: 0 30px 60px -16px rgba(29,158,117,0.40), 0 10px 24px -8px rgba(29,158,117,0.20); }
+.dotted-grid { background-image: radial-gradient(rgba(8,80,65,0.10) 1px, transparent 1px); background-size: 18px 18px; }
+.pulse-dot::after { content:""; position:absolute; inset:-4px; border-radius:9999px; border:2px solid #1D9E75; animation:pulse-ring 2s ease-out infinite; }
+@keyframes pulse-ring { 0%{transform:scale(0.8);opacity:1;}100%{transform:scale(1.6);opacity:0;} }
+.nav-blur { backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); }
+.btn-primary { background:#1D9E75; color:white; transition: all .2s; }
+.btn-primary:hover { background:#168562; transform:translateY(-1px); box-shadow: 0 8px 20px -6px rgba(29,158,117,0.5); }
+.btn-outline { border:1.5px solid #085041; color:#085041; transition: all .2s; }
+.btn-outline:hover { background:#085041; color:white; transform:translateY(-1px); }
+.sidebar-link { display:flex; align-items:center; gap:10px; padding:11px 13px; border-radius:14px; font-size:15px; font-weight:500; color:#085041cc; transition:all .15s; cursor:pointer; text-decoration:none; }
+.sidebar-link:hover { background:#E1F5EE; color:#085041; }
+.sidebar-link.active { background:#1D9E75; color:white; }
+.customer-panel { display:flex; height:100vh; overflow:hidden; }
+.sidebar { width:16rem; background:white; border-right:1px solid #E1F5EE; flex-shrink:0; display:flex; flex-direction:column; justify-content:space-between; }
+.topbar { position:sticky; top:0; z-index:30; height:4rem; display:flex; align-items:center; justify-content:space-between; padding:0 1.5rem; background:rgba(248,249,246,0.92); border-bottom:1px solid #E1F5EE; }
+.main-content { flex:1; overflow-y:auto; min-width:0; }
+.profile-menu { position:relative; }
+.profile-dropdown { position:absolute; top:calc(100% + 8px); right:0; min-width:200px; background:white; border:1px solid #E1F5EE; border-radius:16px; padding:8px; box-shadow: 0 16px 36px -16px rgba(8,80,65,0.22); display:none; z-index:50; }
+.profile-dropdown.open { display:block; }
+.profile-dropdown a, .profile-dropdown button { width:100%; display:flex; align-items:center; gap:8px; border:0; background:transparent; text-align:left; padding:10px 12px; border-radius:10px; color:#085041; font-size:14px; text-decoration:none; cursor:pointer; }
+.profile-dropdown a:hover, .profile-dropdown button:hover { background:#F1FAF6; }
+.profile-dropdown .danger { color:#9a4a2e; }
+.mobile-menu-button { display:none; }
+.mobile-sidebar-backdrop { display:none; }
+
+@media (max-width: 1023px) {
+  .customer-panel { position:relative; }
+  .sidebar { position:fixed; top:0; left:0; bottom:0; z-index:50; transform:translateX(-100%); transition:transform .2s ease; overflow-y:auto; }
+  .sidebar-open .sidebar { transform:translateX(0); }
+  .mobile-sidebar-backdrop { display:block; position:fixed; inset:0; background:rgba(8,80,65,.28); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:40; border:0; }
+  .sidebar-open .mobile-sidebar-backdrop { opacity:1; pointer-events:auto; }
+  .mobile-menu-button { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:10px; border:1px solid #E1F5EE; background:white; color:#085041; }
+  .topbar { padding:0 1rem; }
+}
+
+@media (max-width: 639px) {
+  .topbar { padding:0 0.9rem; }
+}

@@ -4,6 +4,8 @@ const DASHBOARD_DEFAULTS = {
   accent: "dark",
 };
 
+const SELLER_CARBON_RESULT_KEY = "leafpay_seller_carbon_result";
+
 const DASHBOARD_STATE = {
   activeMonth: "current",
   monthInputs: {
@@ -544,6 +546,17 @@ function renderCO2Result() {
       </div>
     `;
   }).join("");
+
+  try {
+    localStorage.setItem(SELLER_CARBON_RESULT_KEY, JSON.stringify({
+      total,
+      breakdown,
+      month: DASHBOARD_STATE.activeMonth,
+      capturedAt: new Date().toISOString(),
+    }));
+  } catch (error) {
+    /* ignore */
+  }
 }
 
 function bindDashboardEvents() {

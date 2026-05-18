@@ -332,7 +332,7 @@ function getGreenOptionsMarkup() {
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="card">
           <div class="flex items-start justify-between">
-            <div class="eyebrow">Toplam Webhook</div>
+            <div class="eyebrow">Toplam Satış</div>
             <svg class="w-4 h-4 text-leaf-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
           </div>
           <div class="mt-3 flex items-baseline gap-2">
@@ -357,18 +357,13 @@ function getGreenOptionsMarkup() {
             <span class="text-xs text-leaf-800/55 font-mono">VP</span>
           </div>
           <div class="text-[11px] text-leaf-800/55 font-mono mt-1">≈ ₺${fmtNum(Math.round(stats.vera / 10))} kupon değerinde</div>
-          <div class="mt-4 progress-bar">
-            <div class="progress-fill" style="width:${Math.min(100, (stats.vera / 5000) * 100)}%; background:#EF9F27;"></div>
-          </div>
-          <div class="flex justify-between mt-1.5 text-[10px] font-mono text-leaf-800/40">
-            <span>Aylık hedef 5.000 VP</span>
-            <span class="text-amber-600 font-semibold">%${Math.min(100, Math.round((stats.vera / 5000) * 100))}</span>
-          </div>
+          
+          
         </div>
 
         <div class="card">
           <div class="flex items-start justify-between">
-            <div class="eyebrow">Benzersiz Müşteri</div>
+            <div class="eyebrow">Yeşil Seçim Müşterileri</div>
             <svg class="w-4 h-4 text-leaf-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
           </div>
           <div class="mt-3 flex items-baseline gap-2">
@@ -376,15 +371,12 @@ function getGreenOptionsMarkup() {
             <span class="text-xs text-leaf-800/55 font-mono">kullanıcı</span>
           </div>
           <div class="text-[11px] text-leaf-800/55 font-mono mt-1">${(stats.total / Math.max(1, stats.users)).toFixed(1)} hareket / kullanıcı</div>
-          <div class="mt-3 flex -space-x-1.5">
-            ${USERS.slice(0, 5).map((user, index) => `<div class="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-leaf-700" style="background:${["#BFE7D6", "#8DD3B7", "#4FB893", "#F5B656", "#FBF0DC"][index]};">${user[0].toUpperCase()}</div>`).join("")}
-            ${stats.users > 5 ? `<div class="w-7 h-7 rounded-full border-2 border-white bg-leaf-100 text-leaf-700 text-[10px] font-bold flex items-center justify-center">+${stats.users - 5}</div>` : ""}
-          </div>
+          
         </div>
 
         <div class="card">
           <div class="flex items-start justify-between">
-            <div class="eyebrow">Etkin Ürün</div>
+            <div class="eyebrow">Mağazadaki Rozetli Ürünler</div>
             <svg class="w-4 h-4 text-leaf-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
           </div>
           <div class="mt-3 flex items-baseline gap-2">
@@ -393,44 +385,20 @@ function getGreenOptionsMarkup() {
           </div>
           <div class="text-[11px] text-leaf-800/55 font-mono mt-1">yeşil seçim alan</div>
           <div class="mt-3 flex items-center gap-2 text-[11px] text-leaf-700 font-mono">
-            <span class="badge-mini bg-leaf-50 border border-leaf-200 text-leaf-700">▲ +18% YoY</span>
           </div>
         </div>
       </div>
 
-      <div class="card mb-6">
-        <div class="flex items-start justify-between mb-5 flex-wrap gap-2">
-          <div>
-            <div class="eyebrow">Yeşil Seçenekler · Yönetim</div>
-            <h3 class="font-bold text-leaf-900 mt-1 text-lg">Aktif seçeneklerin · 4 tip</h3>
-            <p class="text-xs text-leaf-800/55 mt-1">Müşteri ödeme akışında gösterilen seçenekler. Aç/kapa anlık yansır, webhook tetiklenmesi durur.</p>
-          </div>
-          <button type="button" class="text-xs font-semibold px-3 py-1.5 rounded-full text-white inline-flex items-center gap-1.5" style="background:var(--accent);">
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
-            Yeni seçenek
-          </button>
-        </div>
+    
 
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          ${stats.byOpt.map((item) => getGreenOptionCardMarkup(item.opt, item)).join("")}
-        </div>
-
-        ${greenProductsState.filterOpt ? `
-          <div class="mt-4 flex items-center justify-between bg-leaf-50 border border-leaf-200 rounded-2xl px-4 py-2.5 text-xs">
-            <span class="text-leaf-800 font-medium">
-              Filtre aktif: <b class="text-leaf-900">${OPT_BY_ID[greenProductsState.filterOpt].name}</b>
-            </span>
-            <button type="button" data-green-clear-filter class="text-leaf-700 font-mono font-semibold hover:text-leaf-900">Temizle ×</button>
-          </div>
-        ` : ""}
-      </div>
-
+        
+      
       <div class="card green-log-card">
         <div class="flex items-center justify-between flex-wrap gap-3 px-6 py-4 border-b border-leaf-100">
           <div class="flex items-center gap-3">
             <div>
               <div class="eyebrow">Canlı Akış</div>
-              <div class="font-bold text-leaf-900 mt-0.5">Webhook Hareketleri</div>
+              <div class="font-bold text-leaf-900 mt-0.5">Satış Hareketleri</div>
             </div>
             <span class="pill-mono"><span class="w-1.5 h-1.5 rounded-full bg-leaf-500 animate-pulse"></span>${fmtNum(filteredLogs.length)} kayıt</span>
           </div>
@@ -441,17 +409,14 @@ function getGreenOptionsMarkup() {
               </span>
               <input type="text" placeholder="Ürün, müşteri veya sipariş ara…" value="${greenProductsState.search.replace(/"/g, "&quot;")}" data-green-search>
             </div>
-            <button type="button" data-green-export class="text-xs font-semibold px-3 py-2 rounded-full border border-leaf-200 bg-white text-leaf-700 hover:bg-leaf-50 transition inline-flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              CSV indir
-            </button>
+           
           </div>
         </div>
 
         ${greenProductsState.loading ? `
           <div class="text-center py-16 px-6">
             <div class="text-leaf-900 font-bold">Yükleniyor</div>
-            <div class="text-xs text-leaf-800/55 mt-1">Webhook kayıtları alınıyor.</div>
+            <div class="text-xs text-leaf-800/55 mt-1">Satış kayıtları alınıyor.</div>
           </div>
         ` : filteredLogs.length === 0 ? `
           <div class="text-center py-16 px-6">

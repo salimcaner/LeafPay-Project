@@ -9,6 +9,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (initialView === "rozet-durumu" && typeof renderBadgeStatus === "function") {
     renderBadgeStatus();
     setActiveSellerView("rozet-durumu");
+  } else if (initialView === "ai-yol-haritasi" && typeof renderAiRoadmap === "function") {
+    renderAiRoadmap();
+    setActiveSellerView("ai-yol-haritasi");
   } else if (initialView === "istatistikler" && typeof renderStatistics === "function") {
     renderStatistics();
     setActiveSellerView("istatistikler");

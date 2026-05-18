@@ -3,6 +3,7 @@ const SELLER_VIEW_LABELS = {
   istatistikler: "İstatistikler",
   "yesil-secenekler": "Yeşil Ürünler",
   "rozet-durumu": "Rozet Durumu",
+  "ai-yol-haritasi": "AI Yol Haritasi",
 };
 
 function renderSidebar() {
@@ -39,7 +40,7 @@ function renderSidebar() {
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Rozet Durumu
         </a>
-        <a href="#" class="sidebar-link">
+        <a href="#" class="sidebar-link" data-nav="ai-yol-haritasi">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6M4.22 4.22l4.24 4.24m7.08 7.08 4.24 4.24M1 12h6m10 0h6M4.22 19.78l4.24-4.24m7.08-7.08 4.24-4.24"/></svg>
             AI Yol Haritası
           </a>
@@ -182,6 +183,8 @@ function bindLayoutEvents() {
         renderGreenOptions();
       } else if (view === "rozet-durumu") {
         renderBadgeStatus();
+      } else if (view === "ai-yol-haritasi" && typeof renderAiRoadmap === "function") {
+        renderAiRoadmap();
       }
 
       setActiveSellerView(view);

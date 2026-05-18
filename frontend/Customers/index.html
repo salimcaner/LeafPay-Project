@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="leafpay-api-base-url" content="" />
-  <title>LeafPay — Satıcı Paneli</title>
+  <title>LeafPay — Kullanıcı Paneli</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +20,8 @@
               600: '#168562', 700: '#0F6A4F', 800: '#085041', 900: '#053A30',
             },
             amber: { 400: '#F5B656', 500: '#EF9F27' },
-            ink: '#2C2C2A', paper: '#F8F9F6',
+            ink: '#2C2C2A',
+            paper: '#F8F9F6',
           },
           fontFamily: {
             sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -30,33 +31,24 @@
       },
     };
   </script>
-  <link rel="stylesheet" href="./css/sellers-layout.css">
-  <link rel="stylesheet" href="./css/dashboard.css">
-  <link rel="stylesheet" href="./css/badge-status.css">
-  <link rel="stylesheet" href="./css/green-options.css">
-  <link rel="stylesheet" href="./css/statistics.css">
-  <link rel="stylesheet" href="./css/verification-test.css">
-  <link rel="stylesheet" href="./css/ai-roadmap.css">
+  <link rel="stylesheet" href="./css/customer-layout.css">
+  <link rel="stylesheet" href="./css/customer-panel.css">
 </head>
 <body class="bg-paper text-ink">
-  <div class="seller-panel">
+  <div class="customer-panel">
     <aside id="sidebar"></aside>
 
     <main class="main-content">
       <header id="topbar"></header>
-      <section id="dashboard-root"></section>
+      <section id="customer-root"></section>
     </main>
   </div>
 
   <script src="../shared/env.js"></script>
   <script src="../shared/auth.js"></script>
+  <script src="./js/data.js"></script>
+  <script src="./js/views.js"></script>
   <script src="./js/layout.js"></script>
-  <script src="./js/dashboard.js"></script>
-  <script src="./js/green-options.js"></script>
-  <script src="./js/badge-status.js"></script>
-  <script src="./js/statistics.js"></script>
-  <script src="./js/verification-test.js"></script>
-  <script src="./js/ai-roadmap.js"></script>
   <script src="./js/app.js"></script>
 </body>
 </html>
