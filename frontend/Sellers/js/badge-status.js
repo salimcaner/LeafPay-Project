@@ -32,24 +32,67 @@ function hasDraft() {
   }
 }
 
-function renderBadgeStatus() {
+async function renderBadgeStatus() {
   const root = document.getElementById("dashboard-root");
   if (!root) return;
 
-  const result = getVerificationResult();
-
-  if (!result) {
-    renderBadgeEmpty(root);
+  // Optimistic render from localStorage cache
+  const cached = getVerificationResult();
+  if (cached) {
+    renderBadgeCompleted(root, cached);
   } else {
-    renderBadgeCompleted(root, result);
+    renderBadgeEmpty(root, hasDraft());
   }
+  bindBadgeStatusEvents();
 
+  // Fetch authoritative data from server
+  let apiData = null;
+  try {
+    const token = (typeof getAuthState === "function") ? (getAuthState().token || "") : "";
+    const base = typeof getApiBaseUrl === "function" ? getApiBaseUrl() : "";
+    const res = await fetch(base + "/satici/rozet", {
+      headers: { "Authorization": "Bearer " + token },
+    });
+    if (res.ok) apiData = await res.json();
+  } catch (e) { /* keep cached render */ }
+
+  if (!apiData) return;
+
+  const apiRozet   = apiData.aktif_rozet;
+  const apiBelgeler = Array.isArray(apiData.belgeler) ? apiData.belgeler : [];
+  const hasDraftApi = !!(apiData.taslak && apiData.taslak.cevaplar && Object.keys(apiData.taslak.cevaplar).length > 0);
+
+  if (apiRozet) {
+    const result = {
+      status: "completed",
+      score:      apiRozet.skor || 0,
+      tier:       apiRozet.tier || 0,
+      badgeId:    apiRozet.rozet_id || "—",
+      earnedAt:   apiRozet.kazanim_tarihi  ? apiRozet.kazanim_tarihi.slice(0, 10)  : "—",
+      validUntil: apiRozet.gecerlilik_sonu ? apiRozet.gecerlilik_sonu.slice(0, 10) : "—",
+      trustScore: apiRozet.guven_skoru || apiRozet.skor || 0,
+      answers:    apiRozet.cevaplar || {},
+      breakdown:  Array.isArray(apiRozet.kirilim) ? apiRozet.kirilim : [],
+      certs: apiBelgeler.map((b) => ({
+        id:    b.soru_id,
+        title: (typeof vtFindQuestionTitle === "function") ? vtFindQuestionTitle(b.soru_id) : b.soru_id,
+        name:  b.dosya_adi,
+      })),
+    };
+    try { localStorage.setItem(BS_RESULT_KEY, JSON.stringify(result)); } catch (e) { /* ignore */ }
+    renderBadgeCompleted(root, result);
+  } else {
+    if (cached) {
+      try { localStorage.removeItem(BS_RESULT_KEY); } catch (e) { /* ignore */ }
+    }
+    renderBadgeEmpty(root, hasDraftApi);
+  }
   bindBadgeStatusEvents();
 }
 
 /* ------------ EMPTY STATE ------------ */
-function renderBadgeEmpty(root) {
-  const draftActive = hasDraft();
+function renderBadgeEmpty(root, draftActive) {
+  if (draftActive === undefined) draftActive = hasDraft();
   const ctaLabel = draftActive ? "Teste devam et" : "Değerlendirme Testini Başlat";
   const draftBadge = draftActive
     ? `<span class="pill-mono" style="background:#FFFBF1;border-color:#F1D69B;color:#C77A0F;">

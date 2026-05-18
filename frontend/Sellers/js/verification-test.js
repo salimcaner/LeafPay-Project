@@ -11,14 +11,38 @@
 const VT_DRAFT_KEY  = "leafpay_verification_draft";
 const VT_RESULT_KEY = "leafpay_verification_result";
 
-const VT_SECTIONS = [
+function _vtAuthHeader() {
+  const token = (typeof getAuthState === "function") ? (getAuthState().token || "") : "";
+  return "Bearer " + token;
+}
+
+async function _vtApi(path, opts) {
+  try {
+    const base = typeof getApiBaseUrl === "function" ? getApiBaseUrl() : "";
+    const res = await fetch(base + path, Object.assign({ headers: {
+      "Authorization": _vtAuthHeader(), "Content-Type": "application/json",
+    } }, opts));
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) { return null; }
+}
+
+let _vtDraftTimer = null;
+
+/* ─────────── DATA ───────────
+ * COMMON_SECTIONS: tüm sektörlere sorulur, sırayla
+ * SECTOR_SECTIONS: profile.sector cevabına göre sona eklenir
+ * vtGetActiveSections() → ortak + sektör spesifik birleşik, no field otomatik
+ * --------------------------------------------- */
+
+const COMMON_SECTIONS = [
   {
-    id: "profile", no: "01", title: "Şirket Profili", meta: "4 soru",
+    id: "profile", title: "Şirket Profili", meta: "4 soru",
     questions: [
       {
         id: "sector", type: "radio",
         text: "Hangi sektörde faaliyet gösteriyorsunuz?",
-        hint: "Birincil iş kolunuza göre seçim yapın.",
+        hint: "Seçtiğin sektöre özel ek bir bölüm açılır.",
         options: [
           { value: "tekstil",    label: "Tekstil & Hazır Giyim", desc: "Konfeksiyon, dokuma, deri" },
           { value: "gida",       label: "Gıda & İçecek", desc: "Üretim, ambalajlama, dağıtım" },
@@ -27,7 +51,20 @@ const VT_SECTIONS = [
           { value: "elektronik", label: "Elektronik" },
           { value: "diger",      label: "Diğer" },
         ],
-        scoreMap: { tekstil: 8, gida: 8, ev: 8, kozmetik: 8, elektronik: 8, diger: 6 },
+        // dallandırma sorusu — eşit puan (sektör seçimi puanı etkilemez)
+        scoreMap: { tekstil: 5, gida: 5, ev: 5, kozmetik: 5, elektronik: 5, diger: 5 },
+      },
+      {
+        id: "company_size", type: "radio",
+        text: "Şirketinizin büyüklüğü?",
+        hint: "Daha büyük şirketlerden daha katı kriterler beklenir.",
+        options: [
+          { value: "micro",  label: "1 – 10 kişi", desc: "Mikro işletme" },
+          { value: "small",  label: "11 – 50 kişi", desc: "Küçük ölçekli" },
+          { value: "medium", label: "51 – 250 kişi", desc: "Orta ölçekli" },
+          { value: "large",  label: "251+ kişi", desc: "Büyük ölçekli" },
+        ],
+        scoreMap: { micro: 4, small: 6, medium: 8, large: 10 },
       },
       {
         id: "sustain_yrs", type: "scale",
@@ -35,12 +72,6 @@ const VT_SECTIONS = [
         hint: "Yıl bazında ortalama.",
         scale: { min: 1, max: 5, leftLabel: "0–1 yıl", rightLabel: "5+ yıl" },
         scoreMap: { 1: 2, 2: 4, 3: 6, 4: 8, 5: 10 },
-      },
-      {
-        id: "emp_count", type: "number",
-        text: "Operasyonda çalışan kişi sayısı?",
-        hint: "Tam zamanlı + yarı zamanlı toplam.",
-        placeholder: "örn. 120", unit: "kişi",
       },
       {
         id: "sustain_team", type: "radio",
@@ -55,8 +86,54 @@ const VT_SECTIONS = [
       },
     ],
   },
+
   {
-    id: "packaging", no: "02", title: "Ambalaj & Tedarik", meta: "4 soru",
+    id: "energy", title: "Enerji & Operasyon", meta: "4 soru",
+    questions: [
+      {
+        id: "renewable_share", type: "scale",
+        text: "Operasyonunuzdaki yenilenebilir enerji oranı?",
+        hint: "Toplam elektrik tüketiminizin yenilenebilir kaynaklı yüzdesi.",
+        scale: { min: 1, max: 5, leftLabel: "%0–10", rightLabel: "%75+" },
+        scoreMap: { 1: 1, 2: 3, 3: 5, 4: 8, 5: 10 },
+      },
+      {
+        id: "own_generation", type: "radio",
+        text: "Kendi yenilenebilir enerji üretiminiz var mı? (GES/RES/biyokütle)",
+        options: [
+          { value: "lic_full",    label: "Lisanslı tesis (ihtiyacın çoğunu karşılar)" },
+          { value: "lic_partial", label: "Çatı GES / kısmi karşılama" },
+          { value: "planned",     label: "Yatırım planımız onaylandı" },
+          { value: "no",          label: "Henüz yok" },
+        ],
+        scoreMap: { lic_full: 10, lic_partial: 7, planned: 3, no: 0 },
+      },
+      {
+        id: "iso_50001", type: "radio",
+        text: "ISO 50001 (Enerji Yönetim Sistemi) sertifikanız var mı?",
+        options: [
+          { value: "yes",         label: "Sertifikalı + aktif izleme", desc: "TÜRKAK akredite" },
+          { value: "in_progress", label: "Süreç devam ediyor" },
+          { value: "no",          label: "Hayır" },
+        ],
+        scoreMap: { yes: 10, in_progress: 5, no: 0 },
+      },
+      {
+        id: "energy_tracking", type: "radio",
+        text: "Enerji tüketiminizi nasıl takip ediyorsunuz?",
+        options: [
+          { value: "realtime", label: "Gerçek zamanlı sayaç + dashboard" },
+          { value: "monthly",  label: "Aylık fatura bazlı izleme" },
+          { value: "annual",   label: "Sadece yıllık özet" },
+          { value: "no",       label: "Sistemli takip yok" },
+        ],
+        scoreMap: { realtime: 10, monthly: 6, annual: 3, no: 0 },
+      },
+    ],
+  },
+
+  {
+    id: "packaging", title: "Ambalaj & Tedarik", meta: "4 soru",
     questions: [
       {
         id: "pack_material", type: "multi",
@@ -98,8 +175,53 @@ const VT_SECTIONS = [
       },
     ],
   },
+
   {
-    id: "logistics", no: "03", title: "Lojistik & Kargo", meta: "3 soru",
+    id: "waste", title: "Atık & Döngüsellik", meta: "4 soru",
+    questions: [
+      {
+        id: "waste_sort", type: "scale",
+        text: "Operasyondaki atıklarınızın yüzde kaçı ayrıştırılarak geri dönüşüme gidiyor?",
+        scale: { min: 1, max: 5, leftLabel: "%0–20", rightLabel: "%80+" },
+        scoreMap: { 1: 1, 2: 3, 3: 6, 4: 8, 5: 10 },
+      },
+      {
+        id: "takeback", type: "radio",
+        text: "Müşterilere ürün/ambalaj geri alım programı sunuyor musunuz?",
+        options: [
+          { value: "active",  label: "Aktif geri alım + indirim/puan teşviki" },
+          { value: "pilot",   label: "Pilot program çalışıyor" },
+          { value: "planned", label: "Planlama aşamasında" },
+          { value: "no",      label: "Henüz yok" },
+        ],
+        scoreMap: { active: 10, pilot: 6, planned: 3, no: 0 },
+      },
+      {
+        id: "return_rate", type: "scale",
+        text: "İade oranınız ne kadar? (düşük olması iyi, ters çevrim karbonu yüksek)",
+        scale: { min: 1, max: 5, leftLabel: "%20+", rightLabel: "%2 altı" },
+        scoreMap: { 1: 1, 2: 3, 3: 5, 4: 8, 5: 10 },
+      },
+      {
+        id: "circular_practice", type: "multi",
+        text: "Hangi döngüsel ekonomi uygulamalarını kullanıyorsunuz?",
+        hint: "Uygulanan tüm yöntemleri seçin.",
+        options: [
+          { value: "repair",    label: "Tamir / yenileme hizmeti" },
+          { value: "resale",    label: "İkinci el satış kanalı" },
+          { value: "refill",    label: "Dolum/yeniden kullanım sistemi" },
+          { value: "modular",   label: "Modüler tasarım (parça değişimi)" },
+          { value: "rental",    label: "Kiralama modeli" },
+          { value: "none",      label: "Henüz uygulanmıyor" },
+        ],
+        scoreMap: { repair: 3, resale: 3, refill: 3, modular: 3, rental: 3, none: 0 },
+        scoreCap: 10,
+      },
+    ],
+  },
+
+  {
+    id: "logistics", title: "Lojistik & Kargo", meta: "3 soru",
     questions: [
       {
         id: "cargo_type", type: "multi",
@@ -141,22 +263,9 @@ const VT_SECTIONS = [
       },
     ],
   },
+
   {
-    id: "documents", no: "04", title: "Belge Yükleme", meta: "3 alan",
-    questions: [
-      { id: "iso14001", type: "file", text: "ISO 14001 — Çevre Yönetim Sistemi sertifikası",
-        hint: "PDF veya görüntü. TÜRKAK akredite belge.",
-        placeholder: "ISO 14001 sertifikası", optional: false, score: 8 },
-      { id: "fsc", type: "file", text: "FSC veya muadil tedarik sertifikası",
-        hint: "Orman ürünleri, geri dönüşümlü hammadde sertifikası.",
-        placeholder: "FSC / muadil sertifika", optional: true, score: 5 },
-      { id: "audit", type: "file", text: "Son operasyon audit raporu",
-        hint: "BSI, KPMG vb. bağımsız audit kuruluşundan.",
-        placeholder: "Audit raporu PDF", optional: true, score: 6 },
-    ],
-  },
-  {
-    id: "carbon", no: "05", title: "Karbon İzlemesi", meta: "3 soru",
+    id: "carbon", title: "Karbon İzlemesi", meta: "3 soru",
     questions: [
       {
         id: "carbon_track", type: "radio",
@@ -191,9 +300,293 @@ const VT_SECTIONS = [
       },
     ],
   },
+
+  {
+    id: "social", title: "Sosyal & Şeffaflık", meta: "4 soru",
+    questions: [
+      {
+        id: "wage_policy", type: "radio",
+        text: "Çalışan ücret politikanız nedir?",
+        hint: "Tüm çalışanlar — tedarikçiler dahil.",
+        options: [
+          { value: "living",    label: "Yaşam ücreti politikası uyguluyoruz", desc: "Asgari ücretin belirgin üstü" },
+          { value: "above_min", label: "Asgari ücretin üstünde ödüyoruz" },
+          { value: "min",       label: "Sadece asgari ücret" },
+          { value: "unknown",   label: "Bu yönde özel bir politikamız yok" },
+        ],
+        scoreMap: { living: 10, above_min: 7, min: 3, unknown: 0 },
+      },
+      {
+        id: "supplier_code", type: "radio",
+        text: "Tedarikçiler için bir Davranış Kuralları (Code of Conduct) belgeniz var mı?",
+        options: [
+          { value: "signed",     label: "Tüm tedarikçiler imzalı + denetim yapılıyor" },
+          { value: "shared",     label: "Belge var, paylaşıyoruz ama denetim yok" },
+          { value: "draft",      label: "Taslak hazırlanıyor" },
+          { value: "no",         label: "Henüz yok" },
+        ],
+        scoreMap: { signed: 10, shared: 6, draft: 3, no: 0 },
+      },
+      {
+        id: "public_report", type: "radio",
+        text: "Kamuya açık sürdürülebilirlik raporu yayınlıyor musunuz?",
+        hint: "GRI / SASB / TSRS gibi standartlara uygun.",
+        options: [
+          { value: "annual_std", label: "Yıllık, standart uyumlu rapor yayınlıyoruz" },
+          { value: "annual",     label: "Yıllık iç rapor (kamuya açık değil)" },
+          { value: "rare",       label: "Düzensiz / ara sıra" },
+          { value: "no",         label: "Hayır" },
+        ],
+        scoreMap: { annual_std: 10, annual: 5, rare: 2, no: 0 },
+      },
+      {
+        id: "third_party_audit", type: "radio",
+        text: "Sürdürülebilirlik verileriniz bağımsız 3. taraf doğrulamasından geçiyor mu?",
+        options: [
+          { value: "full",    label: "Tam doğrulama (akredite kuruluş, yıllık)" },
+          { value: "partial", label: "Bazı verilerimiz doğrulanıyor" },
+          { value: "planned", label: "Planlama aşamasında" },
+          { value: "no",      label: "Hayır" },
+        ],
+        scoreMap: { full: 10, partial: 6, planned: 3, no: 0 },
+      },
+    ],
+  },
+
+  {
+    id: "documents", title: "Belge Yükleme", meta: "5 alan",
+    questions: [
+      { id: "iso14001", type: "file",
+        text: "ISO 14001 — Çevre Yönetim Sistemi sertifikası",
+        hint: "PDF veya görüntü. TÜRKAK akredite belge.",
+        placeholder: "ISO 14001 sertifikası", optional: false, score: 8 },
+      { id: "sustainability_report", type: "file",
+        text: "Son sürdürülebilirlik raporu",
+        hint: "GRI/SASB/TSRS standartlarına uygun en güncel raporunuz.",
+        placeholder: "Sürdürülebilirlik raporu", optional: false, score: 7 },
+      { id: "fsc", type: "file",
+        text: "FSC veya muadil tedarik sertifikası",
+        hint: "Orman ürünleri, geri dönüşümlü hammadde sertifikası.",
+        placeholder: "FSC / muadil sertifika", optional: true, score: 5 },
+      { id: "audit", type: "file",
+        text: "Son operasyon audit raporu",
+        hint: "BSI, KPMG vb. bağımsız audit kuruluşundan.",
+        placeholder: "Audit raporu PDF", optional: true, score: 6 },
+      { id: "supplier_code_doc", type: "file",
+        text: "Tedarikçi Davranış Kuralları belgesi",
+        hint: "Tedarikçilerinizin imzaladığı politika belgesi.",
+        placeholder: "Code of Conduct belgesi", optional: true, score: 5 },
+    ],
+  },
 ];
 
-const VT_TOTAL_QUESTIONS = VT_SECTIONS.reduce((a, s) => a + s.questions.length, 0);
+const SECTOR_SECTIONS = {
+  tekstil: {
+    id: "sector_tekstil", title: "Tekstil-Spesifik Kontroller", meta: "3 soru",
+    questions: [
+      {
+        id: "chemical_program", type: "radio",
+        text: "Kimyasal yönetim programınız var mı? (ZDHC / OEKO-TEX)",
+        hint: "Tekstilde tehlikeli madde sıfırlama standartları.",
+        options: [
+          { value: "zdhc_oeko", label: "Her ikisinde de aktifiz (ZDHC + OEKO-TEX)" },
+          { value: "one",       label: "Bunlardan birine sahibiz" },
+          { value: "planning",  label: "Hazırlık sürecindeyiz" },
+          { value: "no",        label: "Henüz yok" },
+        ],
+        scoreMap: { zdhc_oeko: 10, one: 7, planning: 3, no: 0 },
+      },
+      {
+        id: "water_intensity", type: "scale",
+        text: "Kg ürün başına su tüketiminizi takip edip azaltıyor musunuz?",
+        hint: "Tekstil endüstrisinin en kritik metriği.",
+        scale: { min: 1, max: 5, leftLabel: "Takip yok", rightLabel: "Hedefli + düşüş trendi" },
+        scoreMap: { 1: 1, 2: 3, 3: 6, 4: 8, 5: 10 },
+      },
+      {
+        id: "organic_ratio", type: "scale",
+        text: "Organik / geri dönüşümlü hammadde (GOTS, GRS, organik pamuk) oranınız?",
+        scale: { min: 1, max: 5, leftLabel: "%0–10", rightLabel: "%70+" },
+        scoreMap: { 1: 1, 2: 3, 3: 5, 4: 8, 5: 10 },
+      },
+    ],
+  },
+
+  gida: {
+    id: "sector_gida", title: "Gıda-Spesifik Kontroller", meta: "3 soru",
+    questions: [
+      {
+        id: "animal_welfare", type: "radio",
+        text: "Hayvan refahı sertifikalı kaynak kullanıyor musunuz?",
+        hint: "Kafes-siz, hormonsuz, RSPCA / Cage-Free vb.",
+        options: [
+          { value: "full",    label: "Tüm hayvansal ürünler sertifikalı" },
+          { value: "partial", label: "Belirli ürünlerde sertifikalı" },
+          { value: "na",      label: "Vegan / hayvansal ürün yok" },
+          { value: "no",      label: "Sertifika kullanmıyoruz" },
+        ],
+        scoreMap: { full: 10, partial: 6, na: 10, no: 0 },
+      },
+      {
+        id: "organic_food", type: "scale",
+        text: "Organik sertifikalı ürünlerinizin (toplam içindeki) oranı?",
+        scale: { min: 1, max: 5, leftLabel: "%0–10", rightLabel: "%70+" },
+        scoreMap: { 1: 1, 2: 3, 3: 5, 4: 8, 5: 10 },
+      },
+      {
+        id: "food_waste", type: "radio",
+        text: "Gıda israfını azaltmak için aktif bir programınız var mı?",
+        options: [
+          { value: "donation",   label: "Bağış + raf ömrü optimizasyonu + ölçüm" },
+          { value: "donation_only", label: "Sadece bağış yapıyoruz" },
+          { value: "internal",   label: "İç süreçlerde optimize ediyoruz" },
+          { value: "no",         label: "Henüz yok" },
+        ],
+        scoreMap: { donation: 10, donation_only: 6, internal: 4, no: 0 },
+      },
+    ],
+  },
+
+  ev: {
+    id: "sector_ev", title: "Ev & Yaşam-Spesifik Kontroller", meta: "3 soru",
+    questions: [
+      {
+        id: "durability_design", type: "radio",
+        text: "Ürünlerinizi uzun ömürlü tasarlıyor musunuz?",
+        hint: "Modüler parça, dayanıklı malzeme, garanti süresi.",
+        options: [
+          { value: "designed",  label: "Uzun ömür kriteri ile tasarlanıyor + 5+ yıl garanti" },
+          { value: "warranty",  label: "Standart üstü garanti veriyoruz (3-5 yıl)" },
+          { value: "standard",  label: "Yasal asgari garanti" },
+          { value: "no",        label: "Özel bir politikamız yok" },
+        ],
+        scoreMap: { designed: 10, warranty: 7, standard: 3, no: 0 },
+      },
+      {
+        id: "repair_program", type: "radio",
+        text: "Müşterilere tamir hizmeti / yedek parça temini sunuyor musunuz?",
+        options: [
+          { value: "in_house", label: "Kendi tamir merkezimiz + parça stoğumuz var" },
+          { value: "network",  label: "Anlaşmalı tamir ağı kullanıyoruz" },
+          { value: "parts",    label: "Sadece yedek parça satıyoruz" },
+          { value: "no",       label: "Hayır" },
+        ],
+        scoreMap: { in_house: 10, network: 7, parts: 5, no: 0 },
+      },
+      {
+        id: "origin_trace", type: "radio",
+        text: "Hammadde menşeini ürün bazında izleyebiliyor musunuz?",
+        options: [
+          { value: "full",    label: "Tüm hammaddeler için tedarik zinciri izlenebilir" },
+          { value: "primary", label: "Ana malzemeler (ahşap, metal) için izlenebilir" },
+          { value: "partial", label: "Sınırlı ürünlerde" },
+          { value: "no",      label: "İzlenemiyor" },
+        ],
+        scoreMap: { full: 10, primary: 7, partial: 4, no: 0 },
+      },
+    ],
+  },
+
+  kozmetik: {
+    id: "sector_kozmetik", title: "Kozmetik-Spesifik Kontroller", meta: "3 soru",
+    questions: [
+      {
+        id: "cruelty_free", type: "radio",
+        text: "Hayvan deneyi politikanız nedir?",
+        hint: "Cruelty-Free / Leaping Bunny / PETA sertifikalarına dikkat.",
+        options: [
+          { value: "certified", label: "Leaping Bunny / PETA sertifikalıyız" },
+          { value: "policy",    label: "Hayvan deneyi yapmama politikamız var" },
+          { value: "legal",     label: "Sadece yasal zorunluluk olan pazarlarda" },
+          { value: "yes",       label: "Yapıyoruz" },
+        ],
+        scoreMap: { certified: 10, policy: 7, legal: 3, yes: 0 },
+      },
+      {
+        id: "microplastic_free", type: "radio",
+        text: "Ürünlerinizde mikro-plastik kullanımı?",
+        options: [
+          { value: "free_certified", label: "Tüm ürünler mikro-plastik içermiyor (sertifikalı)" },
+          { value: "free_policy",    label: "Kullanmıyoruz (sertifika yok)" },
+          { value: "phasing",        label: "Kademeli olarak çıkarıyoruz" },
+          { value: "yes",            label: "Hâlâ kullanıyoruz" },
+        ],
+        scoreMap: { free_certified: 10, free_policy: 7, phasing: 4, yes: 0 },
+      },
+      {
+        id: "refill_program", type: "radio",
+        text: "Dolum / yeniden kullanım programınız var mı?",
+        options: [
+          { value: "wide",   label: "Geniş ürün yelpazesinde dolum noktaları" },
+          { value: "select", label: "Seçili ürünlerde dolum" },
+          { value: "pilot",  label: "Pilot dönemde" },
+          { value: "no",     label: "Yok" },
+        ],
+        scoreMap: { wide: 10, select: 7, pilot: 3, no: 0 },
+      },
+    ],
+  },
+
+  elektronik: {
+    id: "sector_elektronik", title: "Elektronik-Spesifik Kontroller", meta: "3 soru",
+    questions: [
+      {
+        id: "ewaste", type: "radio",
+        text: "E-atık geri toplama programınız var mı?",
+        hint: "Kullanım ömrü dolan elektronik için.",
+        options: [
+          { value: "active_inc", label: "Aktif toplama + indirim/puan teşviki" },
+          { value: "active",     label: "Toplama noktaları var (teşvik yok)" },
+          { value: "partner",    label: "Üçüncü taraf çözüm ortağı kullanıyoruz" },
+          { value: "no",         label: "Yok" },
+        ],
+        scoreMap: { active_inc: 10, active: 7, partner: 5, no: 0 },
+      },
+      {
+        id: "repairability", type: "scale",
+        text: "Ürünlerinizin tamir edilebilirlik skoru? (Fransa Repairability Index benzeri)",
+        hint: "Modüler tasarım, yedek parça erişimi, tamir kılavuzu.",
+        scale: { min: 1, max: 5, leftLabel: "Düşük", rightLabel: "Çok yüksek" },
+        scoreMap: { 1: 1, 2: 3, 3: 5, 4: 8, 5: 10 },
+      },
+      {
+        id: "energy_label_ratio", type: "scale",
+        text: "Yüksek enerji verimliliği (A / A+) etiketli ürün oranınız?",
+        scale: { min: 1, max: 5, leftLabel: "%0–20", rightLabel: "%80+" },
+        scoreMap: { 1: 1, 2: 3, 3: 5, 4: 8, 5: 10 },
+      },
+    ],
+  },
+};
+
+/* aktif sectionları döner: ortak + (varsa) seçili sektörün spesifik bölümü.
+ * `no` field otomatik atanır (01, 02, ...). */
+function vtGetActiveSections() {
+  const list = COMMON_SECTIONS.slice();
+  const sector = vtState && vtState.answers && vtState.answers.sector;
+  if (sector && SECTOR_SECTIONS[sector]) {
+    list.push(SECTOR_SECTIONS[sector]);
+  }
+  return list.map((s, i) => Object.assign({}, s, { no: String(i + 1).padStart(2, "0") }));
+}
+
+function vtGetTotalQuestions() {
+  return vtGetActiveSections().reduce((a, s) => a + s.questions.length, 0);
+}
+
+/* qid'den soru başlığı bulur — common + tüm sector'ları tarar (stale answers için). */
+function vtFindQuestionTitle(qid) {
+  for (let i = 0; i < COMMON_SECTIONS.length; i++) {
+    const qs = COMMON_SECTIONS[i].questions;
+    for (let j = 0; j < qs.length; j++) if (qs[j].id === qid) return qs[j].text;
+  }
+  const keys = Object.keys(SECTOR_SECTIONS);
+  for (let k = 0; k < keys.length; k++) {
+    const qs = SECTOR_SECTIONS[keys[k]].questions;
+    for (let j = 0; j < qs.length; j++) if (qs[j].id === qid) return qs[j].text;
+  }
+  return qid;
+}
 
 const VT_ANALYZING_TASKS = [
   { label: "Cevap matrisi oluşturuluyor", ms: 700 },
@@ -219,17 +612,31 @@ function vtLoadDraft() {
     if (!raw) {
       vtState.answers = {};
       vtState.secIdx  = 0;
-      return;
-    }
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object") {
-      vtState.answers = parsed.answers || {};
-      vtState.secIdx  = Number.isInteger(parsed.secIdx) ? parsed.secIdx : 0;
+    } else {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        vtState.answers = parsed.answers || {};
+        vtState.secIdx  = Number.isInteger(parsed.secIdx) ? parsed.secIdx : 0;
+      }
     }
   } catch (e) {
     vtState.answers = {};
     vtState.secIdx  = 0;
   }
+  // Sync from server; server data takes precedence over stale localStorage cache
+  _vtApi("/satici/rozet").then((data) => {
+    if (!data || !data.taslak) return;
+    const draft = data.taslak;
+    vtState.answers = draft.cevaplar || {};
+    vtState.secIdx  = typeof draft.aktif_bolum_idx === "number" ? draft.aktif_bolum_idx : 0;
+    try {
+      localStorage.setItem(VT_DRAFT_KEY, JSON.stringify({
+        status: "draft", answers: vtState.answers, secIdx: vtState.secIdx,
+        updatedAt: new Date().toISOString(),
+      }));
+    } catch (e) { /* ignore */ }
+    vtRender();
+  });
 }
 
 function vtSaveDraft() {
@@ -241,15 +648,27 @@ function vtSaveDraft() {
       updatedAt: new Date().toISOString(),
     }));
   } catch (e) { /* ignore */ }
+  clearTimeout(_vtDraftTimer);
+  _vtDraftTimer = setTimeout(() => {
+    _vtApi("/satici/rozet/draft", {
+      method: "POST",
+      body: JSON.stringify({
+        cevaplar: vtState.answers,
+        aktif_bolum_idx: vtState.secIdx,
+        sektor: vtState.answers.sector || null,
+      }),
+    });
+  }, 1500);
 }
 
 function vtClearDraft() {
   try { localStorage.removeItem(VT_DRAFT_KEY); } catch (e) { /* ignore */ }
+  _vtApi("/satici/rozet/draft", { method: "DELETE" });
 }
 
 function vtAnsweredCount() {
   let n = 0;
-  VT_SECTIONS.forEach((s) => s.questions.forEach((q) => {
+  vtGetActiveSections().forEach((s) => s.questions.forEach((q) => {
     const v = vtState.answers[q.id];
     if (v != null && v !== "" && !(Array.isArray(v) && v.length === 0)) n++;
   }));
@@ -264,7 +683,7 @@ function vtSectionAnsweredCount(sec) {
 }
 
 function vtIsSectionDone(sIdx) {
-  const sec = VT_SECTIONS[sIdx];
+  const sec = vtGetActiveSections()[sIdx];
   return sec.questions.every((q) => {
     if (q.type === "file" && q.optional) return true;
     const v = vtState.answers[q.id];
@@ -277,7 +696,7 @@ function vtCalculateScore(answers) {
   let maxRaw = 0;
   const breakdown = [];
 
-  VT_SECTIONS.forEach((section) => {
+  vtGetActiveSections().forEach((section) => {
     let secRaw = 0;
     let secMax = 0;
     section.questions.forEach((q) => {
@@ -383,6 +802,10 @@ function renderVerificationTest(opts) {
 function vtRender() {
   const root = document.getElementById("dashboard-root");
   if (!root) return;
+  // sektör değişince section sayısı değişebilir → secIdx'i clamp et
+  const activeLen = vtGetActiveSections().length;
+  if (vtState.secIdx >= activeLen) vtState.secIdx = Math.max(0, activeLen - 1);
+  if (vtState.secIdx < 0) vtState.secIdx = 0;
   if (vtState.view === "intro")     return vtRenderIntro(root);
   if (vtState.view === "test")      return vtRenderTest(root);
   if (vtState.view === "analyzing") return vtRenderAnalyzing(root);
@@ -404,7 +827,7 @@ function vtRenderIntro(root) {
       <div class="text-center mb-10">
         <span class="vt-pill-mono mb-5"><span class="w-1.5 h-1.5 rounded-full bg-leaf-500 animate-pulse"></span>AI Doğrulama Testi · v2.4</span>
         <h1 class="text-[2.4rem] lg:text-[2.9rem] font-black text-leaf-900 tracking-tight leading-[1.05] mt-4">Rozet doğrulama testi</h1>
-        <p class="mt-4 text-leaf-800/70 text-base max-w-xl mx-auto">5 bölümden oluşan ${VT_TOTAL_QUESTIONS} soruluk değerlendirme. AI, cevaplarını yüklediğin belgelerle çapraz kontrol edip rozet seviyeni belirler.</p>
+        <p class="mt-4 text-leaf-800/70 text-base max-w-xl mx-auto">${vtGetActiveSections().length} bölümden oluşan ${vtGetTotalQuestions()} soruluk değerlendirme. AI, cevaplarını yüklediğin belgelerle çapraz kontrol edip rozet seviyeni belirler.</p>
       </div>
 
       <div class="grid sm:grid-cols-3 gap-3 mb-8">
@@ -415,8 +838,8 @@ function vtRenderIntro(root) {
         </div>
         <div class="bg-white border border-leaf-100 rounded-2xl p-4 text-center">
           <div class="vt-eyebrow">Soru</div>
-          <div class="vt-metric-num text-2xl mt-1">${VT_TOTAL_QUESTIONS}</div>
-          <div class="text-[11px] text-leaf-800/60 font-mono mt-1">5 bölüm · zorunlu</div>
+          <div class="vt-metric-num text-2xl mt-1">${vtGetTotalQuestions()}</div>
+          <div class="text-[11px] text-leaf-800/60 font-mono mt-1">${vtGetActiveSections().length} bölüm · sektöre özel</div>
         </div>
         <div class="bg-white border border-leaf-100 rounded-2xl p-4 text-center">
           <div class="vt-eyebrow">Geçerlilik</div>
@@ -428,14 +851,14 @@ function vtRenderIntro(root) {
       <div class="bg-white rounded-3xl border border-leaf-100 p-6 mb-6">
         <div class="vt-eyebrow mb-3">Bölümler</div>
         <ol class="space-y-2.5">
-          ${VT_SECTIONS.map((s, i) => `
+          ${vtGetActiveSections().map((s, i) => `
             <li class="flex items-center gap-3">
               <span class="rail-dot">${s.no}</span>
               <div class="flex-1">
                 <div class="text-sm font-semibold text-leaf-900">${vtEscapeHtml(s.title)}</div>
                 <div class="text-[11px] font-mono text-leaf-800/55">${vtEscapeHtml(s.meta)}</div>
               </div>
-              <span class="text-[10px] font-mono text-leaf-600/70">${i === VT_SECTIONS.length - 1 ? "sonra AI doğrulama" : ""}</span>
+              <span class="text-[10px] font-mono text-leaf-600/70">${i === vtGetActiveSections().length - 1 ? "sonra AI doğrulama" : ""}</span>
             </li>`).join("")}
           <li class="flex items-center gap-3 pt-2 mt-2 border-t border-leaf-100">
             <span class="rail-dot" style="background:#FFFBF1;color:#C77A0F;border-color:#F1D69B;">AI</span>
@@ -446,6 +869,7 @@ function vtRenderIntro(root) {
             <span class="text-[10px] font-mono text-amber-700">~30 sn</span>
           </li>
         </ol>
+        ${vtState.answers.sector ? "" : `<p class="text-[11px] font-mono text-leaf-800/55 mt-4 pt-3 border-t border-leaf-100">+ İlk sorudaki sektör seçiminize göre 1 ek bölüm açılır (3 soru).</p>`}
       </div>
 
       <div class="bg-leaf-900 text-white rounded-3xl p-6 mb-8">
@@ -486,8 +910,8 @@ function vtRenderIntro(root) {
 
 /* ─────────── TEST ─────────── */
 function vtRenderTest(root) {
-  const section = VT_SECTIONS[vtState.secIdx];
-  const isLastSection = vtState.secIdx === VT_SECTIONS.length - 1;
+  const section = vtGetActiveSections()[vtState.secIdx];
+  const isLastSection = vtState.secIdx === vtGetActiveSections().length - 1;
   const totalA = vtAnsweredCount();
   const secA = vtSectionAnsweredCount(section);
 
@@ -496,7 +920,7 @@ function vtRenderTest(root) {
       <aside class="vt-rail">
         <div class="vt-eyebrow mb-4">Test Bölümleri</div>
         <div class="space-y-1.5">
-          ${VT_SECTIONS.map((s, i) => {
+          ${vtGetActiveSections().map((s, i) => {
             const done = vtIsSectionDone(i);
             const cls = i === vtState.secIdx ? "active" : (done ? "done" : "");
             const dotInner = (done && i !== vtState.secIdx)
@@ -523,10 +947,10 @@ function vtRenderTest(root) {
         <div class="mt-6 pt-5 border-t border-leaf-100">
           <div class="flex justify-between text-[11px] font-mono text-leaf-800/55 mb-2">
             <span>Toplam ilerleme</span>
-            <span class="text-leaf-700 font-bold">${totalA}/${VT_TOTAL_QUESTIONS}</span>
+            <span class="text-leaf-700 font-bold">${totalA}/${vtGetTotalQuestions()}</span>
           </div>
           <div class="vt-progress">
-            <div class="vt-progress-fill" style="width:${(totalA / VT_TOTAL_QUESTIONS) * 100}%"></div>
+            <div class="vt-progress-fill" style="width:${(totalA / vtGetTotalQuestions()) * 100}%"></div>
           </div>
         </div>
 
@@ -539,7 +963,7 @@ function vtRenderTest(root) {
       <div class="vt-body">
         <div class="flex items-start justify-between mb-2 flex-wrap gap-2">
           <div>
-            <div class="vt-eyebrow">Bölüm ${section.no} / ${VT_SECTIONS.length} · ${vtEscapeHtml(section.title)}</div>
+            <div class="vt-eyebrow">Bölüm ${section.no} / ${vtGetActiveSections().length} · ${vtEscapeHtml(section.title)}</div>
             <h2 class="text-2xl font-black text-leaf-900 mt-1 tracking-tight">${vtEscapeHtml(section.title)}</h2>
           </div>
           <span class="vt-pill-mono">${secA}/${section.questions.length} cevaplandı</span>
@@ -797,7 +1221,7 @@ function vtRenderAnalyzing(root) {
         </div>
         <div class="vt-eyebrow text-amber-600 mb-2">AI Değerlendirme · Süreç #${Math.floor(Math.random() * 9000) + 1000}-${Math.floor(Math.random() * 90) + 10}</div>
         <h2 class="text-3xl lg:text-4xl font-black text-leaf-900 tracking-tight">Cevapların analiz ediliyor</h2>
-        <p class="mt-3 text-leaf-800/65 text-base max-w-md mx-auto">AI, ${VT_TOTAL_QUESTIONS} cevabı ve ${filesCount} belgeyi çapraz kontrol ediyor.</p>
+        <p class="mt-3 text-leaf-800/65 text-base max-w-md mx-auto">AI, ${vtGetTotalQuestions()} cevabı ve ${filesCount} belgeyi çapraz kontrol ediyor.</p>
       </div>
 
       <div class="bg-white rounded-3xl border border-leaf-100 p-5 max-w-lg mx-auto w-full">
@@ -851,7 +1275,7 @@ function vtRenderAnalyzing(root) {
     }, cumulative);
   });
 
-  setTimeout(() => {
+  setTimeout(async () => {
     const computed = vtCalculateScore(vtState.answers);
     const now = new Date();
     const valid = new Date(now);
@@ -861,21 +1285,36 @@ function vtRenderAnalyzing(root) {
     Object.keys(vtState.answers).forEach((qid) => {
       const v = vtState.answers[qid];
       if (v && v.name) {
-        let title = qid;
-        VT_SECTIONS.forEach((s) => {
-          s.questions.forEach((q) => { if (q.id === qid) title = q.text; });
-        });
-        certs.push({ id: qid, title, name: v.name, size: v.size });
+        certs.push({ id: qid, title: vtFindQuestionTitle(qid), name: v.name, size: v.size });
       }
     });
+
+    let badgeId = vtBuildBadgeId();
+    let validUntilStr = vtIsoDate(valid);
+
+    const apiRes = await _vtApi("/satici/rozet/tamamla", {
+      method: "POST",
+      body: JSON.stringify({
+        cevaplar: vtState.answers,
+        skor: computed.score,
+        tier: computed.tier,
+        guven_skoru: computed.score,
+        kirilim: computed.breakdown,
+        sektor: vtState.answers.sector || null,
+      }),
+    });
+    if (apiRes) {
+      if (apiRes.rozet_id) badgeId = apiRes.rozet_id;
+      if (apiRes.gecerlilik_sonu) validUntilStr = apiRes.gecerlilik_sonu.slice(0, 10);
+    }
 
     const result = {
       status: "completed",
       score: computed.score,
       tier: computed.tier,
-      badgeId: vtBuildBadgeId(),
+      badgeId,
       earnedAt: vtIsoDate(now),
-      validUntil: vtIsoDate(valid),
+      validUntil: validUntilStr,
       trustScore: computed.score,
       answers: vtState.answers,
       breakdown: computed.breakdown,
