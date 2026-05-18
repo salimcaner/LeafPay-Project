@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   } else if (initialView === "ai-yol-haritasi" && typeof renderAiRoadmap === "function") {
     renderAiRoadmap();
     setActiveSellerView("ai-yol-haritasi");
+  } else if (initialView === "karbon-ayak-izi" && typeof renderCarbonCalculator === "function") {
+    renderCarbonCalculator();
+    setActiveSellerView("karbon-ayak-izi");
   } else if (initialView === "istatistikler" && typeof renderStatistics === "function") {
     renderStatistics();
     setActiveSellerView("istatistikler");

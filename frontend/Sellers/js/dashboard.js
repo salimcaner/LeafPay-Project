@@ -110,9 +110,12 @@ const DASHBOARD_SUMMARY = {
 const TIER_NAMES = ["Aday", "Başlangıç", "Onaylı", "Doğrulanmış"];
 const TIER_VERA  = [0, 20, 50, 80];
 
+const VERIFICATION_DRAFT_KEY = "leafpay_verification_draft";
+const VERIFICATION_RESULT_KEY = "leafpay_verification_result";
+
 function getVerificationBadgeData() {
   try {
-    const raw = localStorage.getItem("leafpay_verification_result");
+    const raw = localStorage.getItem(VERIFICATION_RESULT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || parsed.status !== "completed") return null;
@@ -140,8 +143,117 @@ function buildBadgeSection(summary) {
   };
 }
 
+function getDashboardAiRoadmapData() {
+  const result = typeof getAiRoadmapVerificationResult === "function"
+    ? getAiRoadmapVerificationResult()
+    : getVerificationBadgeData();
+  if (!result) return null;
+
+  const templates = typeof ROADMAP_TEMPLATES !== "undefined" ? ROADMAP_TEMPLATES : null;
+  const template = (templates && templates[result.tier]) || (templates && templates[1]);
+  if (!template || !Array.isArray(template.steps) || !template.steps.length) return null;
+
+  const currentIndex = template.steps.findIndex((step) => step.status === "devam");
+  const currentStep = currentIndex >= 0 ? currentIndex + 1 : Math.min(template.steps.filter((step) => step.status === "tamamlandi").length + 1, template.steps.length);
+  const nextStep = template.steps.find((step) => step.status !== "tamamlandi");
+  const isMaxTier = Number(result.tier) >= 3;
+
+  return {
+    stepTitle: isMaxTier
+      ? "Maksimum tier seviyesindesin"
+      : `Tier ${result.tier}'den Tier ${template.targetTier}'ye gecis planin`,
+    currentStep,
+    totalSteps: template.steps.length,
+    progress: template.progress,
+    steps: template.steps.map((step) => ({
+      title: step.title,
+      detail: step.status === "devam" ? step.cta : `Etki ${step.impact} puan`,
+      done: step.status === "tamamlandi",
+      current: step.status === "devam",
+    })),
+    nextActionTitle: nextStep ? nextStep.title : "Mevcut seviyeni koru",
+    nextActionText: nextStep
+      ? nextStep.description
+      : "Belge yenileme ve operasyon takibini duzenli surdur.",
+  };
+}
+
+function hasAnyVerificationAttempt() {
+  try {
+    const draftRaw = localStorage.getItem(VERIFICATION_DRAFT_KEY);
+    if (draftRaw) {
+      const draft = JSON.parse(draftRaw);
+      if (draft && typeof draft === "object") return true;
+    }
+  } catch (e) {
+    /* ignore */
+  }
+
+  return !!getVerificationBadgeData();
+}
+
+function getEmptyBadgeCardMarkup() {
+  return `
+    <div class="area-tier card-dark bg-leaf-800 relative overflow-hidden tier-elevated">
+      <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-leaf-500/20 blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-amber-500/10 blur-2xl pointer-events-none"></div>
+
+      <div class="relative flex items-start justify-between gap-4">
+        <div>
+          <div class="eyebrow text-amber-400 mb-1.5">Rozet Durumu</div>
+          <div class="text-2xl font-black tracking-tight">Henüz rozet yok</div>
+          <div class="text-sm text-white/55 mt-1">Rozet sahibi olmak için test yapın.</div>
+        </div>
+      </div>
+
+      <div class="flex-1 min-h-[220px] flex items-center justify-center">
+        <button type="button" class="btn-amber" data-open-badge-status>
+          Rozet sahibi olmak için test yapın
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function getEmptyAiRoadmapCardMarkup() {
+  return `
+    <div class="area-road card">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div>
+          <div class="eyebrow">AI Yol Haritasi</div>
+          <div class="font-bold text-leaf-900 mt-1 text-lg">Henüz veri yok</div>
+        </div>
+      </div>
+
+      <div class="min-h-[260px] rounded-2xl border border-dashed border-leaf-200 bg-gradient-to-br from-leaf-50/70 to-white flex items-center justify-center p-6 text-center">
+        <div>
+          <div class="text-lg font-black text-leaf-900">AI yol haritasi hazir degil</div>
+          <div class="text-sm text-leaf-800/60 mt-2">Dogrulama testi tamamlandiginda bu kart AI yol haritasi sayfasindaki verilerle dolar.</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function getDashboardRoot() {
   return document.getElementById("dashboard-root");
+}
+
+function renderDashboardLoading() {
+  const dashboardRoot = getDashboardRoot();
+  if (!dashboardRoot) return;
+
+  dashboardRoot.innerHTML = `
+    <section class="dashboard-wrap">
+      <div class="card flex items-center justify-center min-h-[320px]">
+        <div class="text-center">
+          <div class="w-12 h-12 rounded-full border-2 border-leaf-200 border-t-leaf-500 animate-spin mx-auto"></div>
+          <div class="mt-4 font-bold text-leaf-900">Panel verileri yukleniyor</div>
+          <div class="mt-1 text-sm text-leaf-800/60">Ana sayfa dogrudan backend verisiyle hazirlaniyor.</div>
+        </div>
+      </div>
+    </section>
+  `;
 }
 
 function fmtNum(value) {
@@ -269,6 +381,26 @@ function getRoadmapStepperMarkup(roadmap) {
 }
 
 function getTrendProductMarkup(product) {
+  if (!product) {
+    return `
+      <div class="area-tren card relative overflow-hidden">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <div class="eyebrow">Trend Yeşil Ürün</div>
+            <div class="font-bold text-leaf-900 mt-1 text-lg">Bu alan satış oldukça dolacak</div>
+          </div>
+        </div>
+
+        <div class="min-h-[320px] rounded-2xl border border-dashed border-leaf-200 bg-gradient-to-br from-leaf-50/70 to-white flex items-center justify-center p-6 text-center">
+          <div>
+            <div class="text-lg font-black text-leaf-900">Henüz ürün satışı yok</div>
+            <div class="text-sm text-leaf-800/60 mt-2">Yeşil ürünler sayfasındaki ürünlerden satış geldikçe burada trend ürün görünür.</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="area-tren card relative overflow-hidden">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -435,6 +567,8 @@ function getTrendProductFromLogs() {
 function getDashboardMarkup() {
   const summary = DASHBOARD_SUMMARY;
   summary.badge = buildBadgeSection(summary);
+  const hasVerificationAttempt = hasAnyVerificationAttempt();
+  const roadmapData = getDashboardAiRoadmapData();
 
   if (typeof getDashboardGreenKpi === "function") {
     const greenKpi = getDashboardGreenKpi();
@@ -452,7 +586,6 @@ function getDashboardMarkup() {
   }
 
   const topProduct = getTrendProductFromLogs();
-  if (topProduct) summary.trendProduct = topProduct;
 
   const currentMonthLabel = DASHBOARD_STATE.activeMonth === "current" ? "Bu Ay" : "Onceki Ay";
 
@@ -460,15 +593,16 @@ function getDashboardMarkup() {
     <section class="dashboard-wrap">
       <div class="greeting flex flex-wrap items-end justify-between gap-3 mb-6">
         <div>
-          <h1 class="text-[2.1rem] lg:text-[2.4rem] font-black text-leaf-900 tracking-tight leading-[1.05]">Merhaba, <span data-company-short>${summary.greeting.company}</span></h1>
+          <h1 class="text-[2.1rem] lg:text-[2.4rem] font-black text-leaf-900 tracking-tight leading-[1.05]">Merhaba, <span data-company-name>${summary.greeting.company}</span></h1>
           <p class="mt-1.5 text-leaf-800/65 text-sm max-w-lg">Bu ay ${fmtNum(summary.greeting.monthlySales)} yesil urun satisi yaptin. Tier 4'e yukselmen icin <b class="text-leaf-700">${summary.greeting.nextTierSteps} adim</b> kaldi.</p>
         </div>
         <div class="flex items-center gap-2">
           <span class="pill-mono"><span class="w-1.5 h-1.5 rounded-full bg-leaf-500"></span>${summary.greeting.liveLabel}</span>
-        </div>
+        </div>w
       </div>
 
       <div class="dash-grid">
+        ${!hasVerificationAttempt ? getEmptyBadgeCardMarkup() : `
         <div class="area-tier card-dark bg-leaf-800 relative overflow-hidden tier-elevated">
           <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-leaf-500/20 blur-3xl pointer-events-none"></div>
           <div class="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-amber-500/10 blur-2xl pointer-events-none"></div>
@@ -517,6 +651,7 @@ function getDashboardMarkup() {
             <div class="mt-2 text-[11px] text-white/45">${summary.badge.progressMeta}</div>
           </div>
         </div>
+        `}
 
         <div class="area-kpi">
           <div class="kpi-grid">
@@ -524,21 +659,22 @@ function getDashboardMarkup() {
           </div>
         </div>
 
+        ${!roadmapData ? getEmptyAiRoadmapCardMarkup() : `
         <div class="area-road card">
           <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
             <div>
               <div class="eyebrow">AI Yol Haritasi</div>
-              <div class="font-bold text-leaf-900 mt-1 text-lg">${summary.roadmap.stepTitle}</div>
+              <div class="font-bold text-leaf-900 mt-1 text-lg">${roadmapData.stepTitle}</div>
             </div>
-            <span class="pill-mono">Adim ${summary.roadmap.currentStep}/${summary.roadmap.totalSteps}</span>
+            <span class="pill-mono">Adim ${roadmapData.currentStep}/${roadmapData.totalSteps}</span>
           </div>
 
           <div class="flex items-center mb-5" id="roadmap-steps">
-            ${getRoadmapStepperMarkup(summary.roadmap)}
+            ${getRoadmapStepperMarkup(roadmapData)}
           </div>
 
           <div class="grid grid-cols-2 lg:grid-cols-5 gap-2 text-[11px]">
-            ${summary.roadmap.steps.map(getRoadmapStepMarkup).join("")}
+            ${roadmapData.steps.map(getRoadmapStepMarkup).join("")}
           </div>
 
           <div class="mt-5 flex items-center justify-between bg-leaf-50 border border-leaf-200 rounded-2xl px-4 py-3 gap-3 flex-wrap">
@@ -547,13 +683,15 @@ function getDashboardMarkup() {
                 <svg class="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
               </div>
               <div>
-                <div class="text-sm font-bold text-leaf-900">${summary.roadmap.nextActionTitle}</div>
-                <div class="text-xs text-leaf-800/60 mt-0.5">${summary.roadmap.nextActionText}</div>
+                <div class="text-sm font-bold text-leaf-900">${roadmapData.nextActionTitle}</div>
+                <div class="text-xs text-leaf-800/60 mt-0.5">${roadmapData.nextActionText}</div>
               </div>
             </div>
-            <button class="text-xs font-semibold px-4 py-2 rounded-full text-white dashboard-accent-button">Adimi tamamla →</button>
+            <button class="text-xs font-semibold px-4 py-2 rounded-full text-white dashboard-accent-button" data-open-ai-roadmap>Yol haritasini ac →</button>
           </div>
         </div>
+
+        `}
 
         <div class="area-carb card relative overflow-hidden">
           <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-leaf-100/60 blur-3xl pointer-events-none"></div>
@@ -602,10 +740,46 @@ function getDashboardMarkup() {
           </div>
         </div>
 
-        ${getTrendProductMarkup(summary.trendProduct)}
+        ${getTrendProductMarkup(topProduct)}
       </div>
     </section>
   `;
+}
+
+function simplifyDashboardCarbonCard() {
+  const card = document.querySelector(".area-carb");
+  if (!card) return;
+
+  const monthTabs = card.querySelector(".flex.gap-1\\.5");
+  if (monthTabs) monthTabs.remove();
+
+  const helperText = card.querySelector("p.text-xs.text-leaf-800\\/55.mb-5.max-w-xl");
+  if (helperText) helperText.remove();
+
+  const form = card.querySelector("#co2-form");
+  if (form) form.remove();
+}
+
+function renderCarbonCalculator() {
+  const dashboardRoot = getDashboardRoot();
+  if (!dashboardRoot) return;
+
+  setDashboardBodyAttributes();
+  dashboardRoot.innerHTML = `
+    <section class="dashboard-wrap">
+      <div class="greeting flex flex-wrap items-end justify-between gap-3 mb-6">
+        <div>
+          <h1 class="text-[2.1rem] lg:text-[2.4rem] font-black text-leaf-900 tracking-tight leading-[1.05]">Karbon Ayak Izi Hesaplama</h1>
+          <p class="mt-1.5 text-leaf-800/65 text-sm max-w-2xl">Elektrik, lojistik ve ambalaj verilerini girip aylik operasyonel emisyonunu tek ekranda hesapla.</p>
+        </div>
+      </div>
+
+      ${getCarbonCalculatorCardMarkup()}
+    </section>
+  `;
+
+  bindDashboardEvents();
+  renderCO2Result();
 }
 
 function getCO2FieldMarkup(key, label, unit) {
@@ -616,6 +790,58 @@ function getCO2FieldMarkup(key, label, unit) {
       <div class="field-row">
         <input type="number" min="0" step="1" value="${value}" data-co2-input="${key}">
         <span class="unit">${unit}</span>
+      </div>
+    </div>
+  `;
+}
+
+function getCarbonCalculatorCardMarkup() {
+  const currentMonthLabel = DASHBOARD_STATE.activeMonth === "current" ? "Bu Ay" : "Onceki Ay";
+  return `
+    <div class="area-carb card relative overflow-hidden">
+      <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-leaf-100/60 blur-3xl pointer-events-none"></div>
+      <div class="relative">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <div class="eyebrow">Karbon Ayak Izi · Hesapla</div>
+            <div class="font-bold text-leaf-900 mt-1 text-lg">Aylik operasyonel emisyonun</div>
+          </div>
+          <div class="flex gap-1.5">
+            <button class="seg-btn ${DASHBOARD_STATE.activeMonth === "current" ? "active" : ""}" data-month-tab="current">Bu Ay</button>
+            <button class="seg-btn ${DASHBOARD_STATE.activeMonth === "last" ? "active" : ""}" data-month-tab="last">Onceki</button>
+          </div>
+        </div>
+
+        <p class="text-xs text-leaf-800/55 mb-5 max-w-xl">Bilgilerini gir, aninda <b class="text-leaf-700">kg CO2e/ay</b> sonucunu gorup Tier seviyene etkisini ogren.</p>
+
+        <div class="grid sm:grid-cols-2 gap-3" id="co2-form">
+          ${getCO2FieldMarkup("electricity", "Elektrik tuketimi", "kWh/ay")}
+          ${getCO2FieldMarkup("gas", "Dogalgaz tuketimi", "m3/ay")}
+          ${getCO2FieldMarkup("fuel", "Arac yakiti (benzin)", "litre/ay")}
+          ${getCO2FieldMarkup("cargo", "Kargo mesafesi", "km/ay")}
+          ${getCO2FieldMarkup("plastic", "Plastik ambalaj", "kg/ay")}
+          ${getCO2FieldMarkup("cardboard", "Karton ambalaj", "kg/ay")}
+        </div>
+
+        <div class="mt-5 rounded-2xl border border-leaf-200 bg-gradient-to-br from-leaf-50 to-white p-5">
+          <div class="flex items-end justify-between flex-wrap gap-3 mb-4">
+            <div>
+              <div class="eyebrow">Toplam · ${currentMonthLabel}</div>
+              <div class="mt-1 flex items-baseline gap-2">
+                <span class="metric-number text-[2.6rem] leading-none tabular-nums" id="co2-total">—</span>
+                <span class="text-sm text-leaf-800/60 font-mono">kg CO2e</span>
+              </div>
+              <div class="text-xs text-leaf-800/55 mt-1.5" id="co2-equiv">— agac esdeger karsiligi</div>
+            </div>
+            <div class="text-right">
+              <div class="eyebrow text-amber-600">Sektor Ortalamasi</div>
+              <div class="mt-1 font-mono text-leaf-900 text-lg tabular-nums" id="co2-vs-avg">—</div>
+              <div class="text-xs text-leaf-800/55 mt-0.5">5.200 kg CO2e benchmark</div>
+            </div>
+          </div>
+
+          <div class="space-y-2" id="co2-breakdown"></div>
+        </div>
       </div>
     </div>
   `;
@@ -641,12 +867,74 @@ function calculateCO2() {
   return { total, breakdown };
 }
 
+function getStoredCarbonResult() {
+  try {
+    const raw = localStorage.getItem(SELLER_CARBON_RESULT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.total !== "number" || !Array.isArray(parsed.breakdown)) return null;
+    return parsed;
+  } catch (error) {
+    return null;
+  }
+}
+
+function renderCO2Values(result) {
+  const totalElement = document.getElementById("co2-total");
+  const equivElement = document.getElementById("co2-equiv");
+  const compareElement = document.getElementById("co2-vs-avg");
+  const breakdownElement = document.getElementById("co2-breakdown");
+  if (!totalElement || !equivElement || !compareElement || !breakdownElement) return;
+
+  if (!result) {
+    totalElement.textContent = "—";
+    equivElement.textContent = "— agac esdeger karsiligi";
+    compareElement.textContent = "—";
+    breakdownElement.innerHTML = "";
+    return;
+  }
+
+  const total = result.total;
+  const breakdown = result.breakdown;
+  totalElement.textContent = fmtNum(total);
+
+  const trees = total / 1.75;
+  equivElement.textContent = `≈ ${fmtNum(trees)} olgun agacin aylik emilimi`;
+
+  const difference = total - SECTOR_AVG;
+  const percentage = SECTOR_AVG ? (difference / SECTOR_AVG) * 100 : 0;
+  compareElement.innerHTML = difference < 0
+    ? `<span class="text-leaf-600">▼ %${fmtNum(Math.abs(percentage))} daha az</span>`
+    : `<span class="text-amber-600">▲ %${fmtNum(Math.abs(percentage))} daha fazla</span>`;
+
+  const maxValue = Math.max(...breakdown.map((item) => item.co2), 1);
+  breakdownElement.innerHTML = breakdown.map((item) => {
+    const width = (item.co2 / maxValue) * 100;
+    const share = total ? (item.co2 / total) * 100 : 0;
+    return `
+      <div class="bar-row">
+        <span class="bar-name">${item.label}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${width}%; background:${item.color};"></div>
+        </div>
+        <span class="bar-value">${fmtNum(item.co2)} <span class="text-leaf-800/40">· %${fmtNum(share)}</span></span>
+      </div>
+    `;
+  }).join("");
+}
+
 function renderCO2Result() {
   const totalElement = document.getElementById("co2-total");
   const equivElement = document.getElementById("co2-equiv");
   const compareElement = document.getElementById("co2-vs-avg");
   const breakdownElement = document.getElementById("co2-breakdown");
   if (!totalElement || !equivElement || !compareElement || !breakdownElement) return;
+
+  const form = document.getElementById("co2-form");
+  if (!form) {
+    renderCO2Values(getStoredCarbonResult());
+    return;
+  }
 
   const { total, breakdown } = calculateCO2();
   totalElement.textContent = fmtNum(total);
@@ -676,18 +964,48 @@ function renderCO2Result() {
   }).join("");
 
   try {
-    localStorage.setItem(SELLER_CARBON_RESULT_KEY, JSON.stringify({
-      total,
-      breakdown,
-      month: DASHBOARD_STATE.activeMonth,
-      capturedAt: new Date().toISOString(),
-    }));
+    if (form) {
+      localStorage.setItem(SELLER_CARBON_RESULT_KEY, JSON.stringify({
+        total,
+        breakdown,
+        month: DASHBOARD_STATE.activeMonth,
+        capturedAt: new Date().toISOString(),
+      }));
+    }
   } catch (error) {
     /* ignore */
   }
 }
 
 function bindDashboardEvents() {
+  document.querySelectorAll("[data-open-badge-status]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (typeof renderBadgeStatus === "function") {
+        renderBadgeStatus();
+      }
+      if (typeof setActiveSellerView === "function") {
+        setActiveSellerView("rozet-durumu");
+      }
+      if (typeof applyCompanyInfo === "function") {
+        applyCompanyInfo();
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-open-ai-roadmap]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (typeof renderAiRoadmap === "function") {
+        renderAiRoadmap();
+      }
+      if (typeof setActiveSellerView === "function") {
+        setActiveSellerView("ai-yol-haritasi");
+      }
+      if (typeof applyCompanyInfo === "function") {
+        applyCompanyInfo();
+      }
+    });
+  });
+
   document.querySelectorAll("[data-month-tab]").forEach((button) => {
     button.addEventListener("click", () => {
       DASHBOARD_STATE.activeMonth = button.dataset.monthTab;
@@ -708,18 +1026,18 @@ async function renderDashboard() {
   if (!dashboardRoot) return;
 
   setDashboardBodyAttributes();
-  dashboardRoot.innerHTML = getDashboardMarkup();
-  bindDashboardEvents();
-  renderCO2Result();
 
   if (!greenProductsState.logs.length && typeof fetchGreenLogs === "function") {
+    renderDashboardLoading();
     try {
       await fetchGreenLogs();
     } catch (e) {
       console.error("Dashboard: yeşil ürün logları alınamadı:", e);
     }
-    dashboardRoot.innerHTML = getDashboardMarkup();
-    bindDashboardEvents();
-    renderCO2Result();
   }
+
+  dashboardRoot.innerHTML = getDashboardMarkup();
+  bindDashboardEvents();
+  simplifyDashboardCarbonCard();
+  renderCO2Result();
 }

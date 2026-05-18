@@ -1,5 +1,6 @@
 const SELLER_VIEW_LABELS = {
   dashboard: "Anasayfa",
+  "karbon-ayak-izi": "Karbon Ayak Izi",
   istatistikler: "İstatistikler",
   "yesil-secenekler": "Yeşil Ürünler",
   "rozet-durumu": "Rozet Durumu",
@@ -35,6 +36,10 @@ function renderSidebar() {
         <a href="#" class="sidebar-link" data-nav="yesil-secenekler">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3C7.46 19.79 8.79 20 10 20a8 8 0 0 0 8-8c0-2-1-3.83-1-3.83Z"/></svg>
           Yeşil Ürünler
+        </a>
+        <a href="#" class="sidebar-link" data-nav="karbon-ayak-izi">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3"></path><path d="M12 18v3"></path><path d="M4.93 4.93l2.12 2.12"></path><path d="M16.95 16.95l2.12 2.12"></path><path d="M3 12h3"></path><path d="M18 12h3"></path><path d="M4.93 19.07l2.12-2.12"></path><path d="M16.95 7.05l2.12-2.12"></path><circle cx="12" cy="12" r="4"></circle></svg>
+          Karbon Ayak Izi
         </a>
         <a href="#" class="sidebar-link" data-nav="rozet-durumu">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -181,6 +186,8 @@ function bindLayoutEvents() {
         renderStatistics();
       } else if (view === "yesil-secenekler") {
         renderGreenOptions();
+      } else if (view === "karbon-ayak-izi" && typeof renderCarbonCalculator === "function") {
+        renderCarbonCalculator();
       } else if (view === "rozet-durumu") {
         renderBadgeStatus();
       } else if (view === "ai-yol-haritasi" && typeof renderAiRoadmap === "function") {
@@ -199,6 +206,18 @@ function applyCompanyInfo() {
     company = (localStorage.getItem("leafpay_company") || "").trim();
   } catch (error) {
     company = "";
+  }
+
+  if (!company) {
+    try {
+      const authState = typeof getAuthState === "function" ? getAuthState() : null;
+      company = (authState?.user?.sirket_adi || "").trim();
+      if (company) {
+        localStorage.setItem("leafpay_company", company);
+      }
+    } catch (error) {
+      company = "";
+    }
   }
 
   if (!company) return;
