@@ -1,0 +1,149 @@
+/* ============ ROZET DURUMU SAYFASI ============ */
+
+.badge-wrap { padding: 2rem 1.75rem 3rem; max-width: 1320px; margin: 0 auto; }
+
+.badge-card { background: white; border: 1px solid #E1F5EE; border-radius: 24px; padding: 22px; }
+.badge-card-dark { background: #053A30; color: white; border: none; border-radius: 24px; padding: 24px; position: relative; overflow: hidden; }
+
+.eyebrow-mono { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #168562; }
+.metric-num { color: #053A30; font-weight: 900; letter-spacing: -0.02em; }
+
+.pill-mono { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .06em; color: #168562; background: #F1FAF6; border: 1px solid #BFE7D6; padding: 4px 9px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; }
+
+.badge-progress { height: 6px; background: #E1F5EE; border-radius: 999px; overflow: hidden; }
+.badge-progress-fill { height: 100%; background: #1D9E75; border-radius: 999px; transition: width .8s cubic-bezier(.4, 0, .2, 1); }
+
+/* grid */
+.badge-grid { display: grid; gap: 18px; grid-template-columns: repeat(12, 1fr); align-items: start;
+  grid-template-areas:
+    "hero hero hero hero hero hero hero hero hero hero hero hero"
+    "tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers"
+    "test test test test test test test test test test test test"
+    "trust trust trust trust trust certs certs certs certs certs certs certs"
+    "time time time time time time time time embed embed embed embed";
+}
+.badge-area-hero  { grid-area: hero; }
+.badge-area-tiers { grid-area: tiers; }
+.badge-area-test  { grid-area: test; }
+.badge-area-trust { grid-area: trust; }
+.badge-area-certs { grid-area: certs; }
+.badge-area-time  { grid-area: time; }
+.badge-area-embed { grid-area: embed; }
+
+@media (max-width: 1180px) {
+  .badge-grid {
+    grid-template-areas:
+      "hero hero hero hero hero hero hero hero hero hero hero hero"
+      "tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers"
+      "test test test test test test test test test test test test"
+      "trust trust trust trust trust trust certs certs certs certs certs certs"
+      "time time time time time time time time time time time time"
+      "embed embed embed embed embed embed embed embed embed embed embed embed";
+  }
+}
+@media (max-width: 880px) {
+  .badge-grid { grid-template-areas: "hero" "tiers" "test" "trust" "certs" "time" "embed" !important; grid-template-columns: 1fr !important; }
+}
+
+/* TIERS */
+.tier-card { background: white; border: 1px solid #E1F5EE; border-radius: 18px; padding: 14px; position: relative; }
+.tier-card.earned { background: #F1FAF6; border-color: #BFE7D6; }
+.tier-card.current { background: linear-gradient(180deg, #053A30, #085041); border-color: #0F6A4F; color: white; box-shadow: 0 16px 40px -16px rgba(29, 158, 117, 0.45); }
+.tier-card.future { opacity: .7; border-style: dashed; }
+.tier-glyph { width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; }
+.tier-card.earned .tier-glyph { background: #BFE7D6; color: #085041; }
+.tier-card.current .tier-glyph { background: #EF9F27; color: #053A30; }
+.tier-card.future .tier-glyph { background: #F1FAF6; color: #168562; border: 1px dashed #BFE7D6; }
+.tier-card.empty .tier-glyph { background: #F1FAF6; color: #168562; border: 1px dashed #BFE7D6; }
+
+/* TRUST gauge */
+.gauge { position: relative; width: 100%; max-width: 230px; aspect-ratio: 1; margin: 0 auto; }
+.gauge-row { display: grid; grid-template-columns: 1fr 1fr 56px; align-items: center; gap: 10px; font-size: 12px; padding: 9px 0; }
+.gauge-row + .gauge-row { border-top: 1px solid #F1FAF6; }
+.gauge-row .g-name { color: #0F6A4F; font-weight: 600; }
+.gauge-row .g-track { height: 6px; background: #F1FAF6; border-radius: 999px; overflow: hidden; }
+.gauge-row .g-fill { height: 100%; border-radius: 999px; background: #1D9E75; }
+.gauge-row .g-pct { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-align: right; color: #168562; }
+
+/* TIMELINE */
+.timeline { position: relative; padding-left: 32px; }
+.timeline::before { content: ""; position: absolute; left: 10px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, #1D9E75, #BFE7D6); border-radius: 2px; }
+.timeline-item { position: relative; padding-bottom: 20px; }
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-item::before { content: ""; position: absolute; left: -26px; top: 5px; width: 14px; height: 14px; border-radius: 50%; background: white; border: 3px solid #1D9E75; }
+.timeline-item.upcoming::before { border-color: #BFE7D6; background: white; }
+.timeline-item.upcoming { opacity: .6; }
+
+/* CERT */
+.cert-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.cert-row + .cert-row { border-top: 1px solid #F1FAF6; }
+.cert-icon { width: 38px; height: 38px; border-radius: 12px; background: #F1FAF6; border: 1px solid #BFE7D6; display: flex; align-items: center; justify-content: center; color: #168562; flex-shrink: 0; }
+.cert-icon.warn { background: #FFFBF1; border-color: #F1D69B; color: #C77A0F; }
+
+/* ============ EMPTY STATE ============ */
+.empty-state-hero {
+  background: #053A30;
+  color: white;
+  border-radius: 24px;
+  padding: 36px 28px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.empty-state-hero::before,
+.empty-state-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(40px);
+}
+.empty-state-hero::before { top: -64px; right: -64px; width: 256px; height: 256px; background: rgba(29, 158, 117, .2); }
+.empty-state-hero::after  { bottom: -40px; left: -40px; width: 160px; height: 160px; background: rgba(245, 182, 86, .15); }
+.empty-badge-disc {
+  position: relative;
+  width: 168px; height: 168px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px dashed rgba(255, 255, 255, .25);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1;
+}
+.empty-badge-disc svg { width: 56px; height: 56px; color: rgba(255, 255, 255, .35); }
+
+.empty-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 28px 18px; border: 1px dashed #BFE7D6; border-radius: 18px;
+  background: #F8FBF9; color: #168562;
+  min-height: 130px;
+}
+.empty-card svg { width: 22px; height: 22px; opacity: .6; margin-bottom: 10px; }
+.empty-card .empty-title { font-size: 13px; font-weight: 600; color: #085041; }
+.empty-card .empty-sub { font-size: 11px; color: rgba(15, 106, 79, .65); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+
+/* CTA button */
+.btn-amber {
+  background: #F5B656; color: #053A30; font-weight: 600;
+  padding: 10px 18px; border-radius: 999px; font-size: 13px;
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 0; cursor: pointer; transition: background .15s;
+}
+.btn-amber:hover { background: #EF9F27; }
+.btn-ghost-dark {
+  background: rgba(255, 255, 255, .1); color: white;
+  border: 1px solid rgba(255, 255, 255, .2);
+  padding: 10px 18px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.btn-ghost-dark:hover { background: rgba(255, 255, 255, .15); }
+
+/* badge ring + spin */
+.badge-ring { background: conic-gradient(from 90deg, #1D9E75 0%, #4FB893 25%, #1D9E75 50%, #085041 75%, #1D9E75 100%); }
+@keyframes spin-slow-bs { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.spin-slow-bs { animation: spin-slow-bs 30s linear infinite; }
+
+@media (max-width: 1023px) {
+  .badge-wrap { padding: 1.25rem 1rem 2rem; }
+  .badge-card, .badge-card-dark { padding: 18px; }
+}

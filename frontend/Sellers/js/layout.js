@@ -30,7 +30,7 @@ function renderSidebar() {
           Yeşil Seçenekler
         </a>
         <div class="text-[10px] font-mono uppercase tracking-[0.18em] text-leaf-800/40 px-3 mb-2 mt-5">Hesap</div>
-        <a href="#" class="sidebar-link">
+        <a href="#" class="sidebar-link" data-nav="rozet-durumu">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Rozet Durumu
         </a>
@@ -159,7 +159,11 @@ function bindLayoutEvents() {
         renderDashboard();
       } else if (view === "yesil-secenekler") {
         renderGreenOptions();
+      } else if (view === "rozet-durumu") {
+        renderBadgeStatus();
       }
+
+      applyCompanyInfo();
     });
   });
 }
