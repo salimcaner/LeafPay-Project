@@ -284,18 +284,35 @@ Tier 3 — Doğrulanmış (Skor 85-100):
 - Bağımsız denetim, CDP raporlaması, TÜRKAK veya eşdeğer onay
 - Sektörde öncü sürdürülebilirlik uygulamaları
 
-## Kurallar
+## Zayıf Yön Analizi — KRİTİK GÖREV
+
+ESG raporları doğası gereği olumlu bir dille yazılır; eksikler gizlenir, başarılar öne çıkarılır. Senin görevin bu örtbası delmek ve gerçek zayıflıkları ortaya çıkarmaktır. Zayıf yönleri bulurken şu soruları sor:
+
+- Raporda rakam verilmeden sadece "taahhüt" veya "hedef" söylemi var mı? (ölçümsüz vaat = zayıflık)
+- Kapsam 1-2-3 emisyonlarından hangisi eksik ya da belirsiz?
+- Tedarik zinciri (Kapsam 3) raporlanmış mı, yoksa görmezden mi gelinmiş?
+- Biyoçeşitlilik, su tüketimi, toprak kullanımı gibi konular atlanmış mı?
+- Sosyal veriler (maaş eşitliği, iş kazaları, çalışan devir oranı) somut mu, yoksa muğlak mı?
+- Yönetişimde bağımsız denetim var mı, yoksa şirketin kendi özdeğerlendirmesi mi?
+- Hedefler için bağımsız doğrulama (SBTi, CDP, GRI assured) eksik mi?
+- Önceki yılla karşılaştırmalı veri verilmemiş mi?
+- Sektörün bilinen risklerine (karbon yoğunluğu, su kıtlığı vb.) hiç değinilmemiş mi?
+- Raporun dili belirsiz, ölçülemez ifadeler içeriyor mu ("sürdürülebilir büyüme", "yeşil geleceğe katkı" gibi)?
+
+zayif_yonler listesinde en az 4 madde olmalı. Rapor ne kadar parlak görünse de bu maddeler mutlaka bulunabilir — bulunamazsa o rapor zaten Tier 3 için bile yeterli değildir.
+
+## Genel Kurallar
 
 1. Yüklenen belge bir ESG, sürdürülebilirlik, kurumsal sorumluluk veya çevre raporu değilse is_esg_report: false döndür ve diğer tüm alanları boş bırak.
 2. Skor 40-100 arasında olmalı. Rapor gerçekten yetersizse tier: 1, skor: 40 kullan.
 3. kirilim toplamı skora yakın olmalı. Çevre (E) max 40, Sosyal (S) max 30, Yönetişim (G) max 30.
-4. yol_haritasi en az 4, en fazla 8 adım içermeli; eksik alanlara odaklan.
-5. guclu_yonler, zayif_yonler ve oneriler en az 3'er madde içermeli.
+4. yol_haritasi en az 4, en fazla 8 adım içermeli; zayıf yönlerden doğrudan beslenmeli.
+5. guclu_yonler en az 3, zayif_yonler en az 4, oneriler en az 4 madde içermeli.
 6. Tüm metin Türkçe olmalı.
 7. Bugünün tarihi: {bugun}
 
 JSON cikti formati (SADECE JSON dondur, baska metin yazma):
-{{"is_esg_report": true, "tier": 2, "skor": 72, "ozet": "...", "guclu_yonler": ["...", "...", "..."], "zayif_yonler": ["...", "...", "..."], "oneriler": ["...", "...", "..."], "yol_haritasi": [{{"baslik": "...", "aciklama": "...", "oncelik": "yuksek", "etki_puani": 20, "durum": "yapilacak", "eylem": "..."}}], "kirilim": [{{"title": "Cevre (E)", "score": 28, "max": 40, "pct": 70}}, {{"title": "Sosyal (S)", "score": 22, "max": 30, "pct": 73}}, {{"title": "Yonetisim (G)", "score": 22, "max": 30, "pct": 73}}]}}"""
+{{"is_esg_report": true, "tier": 2, "skor": 72, "ozet": "...", "guclu_yonler": ["...", "...", "..."], "zayif_yonler": ["...", "...", "...", "..."], "oneriler": ["...", "...", "...", "..."], "yol_haritasi": [{{"baslik": "...", "aciklama": "...", "oncelik": "yuksek", "etki_puani": 20, "durum": "yapilacak", "eylem": "..."}}], "kirilim": [{{"title": "Cevre (E)", "score": 28, "max": 40, "pct": 70}}, {{"title": "Sosyal (S)", "score": 22, "max": 30, "pct": 73}}, {{"title": "Yonetisim (G)", "score": 22, "max": 30, "pct": 73}}]}}"""
 
 
 def cagir_esg_analizi(content: bytes, mime_type: str) -> dict:
