@@ -590,6 +590,42 @@ function rerenderGreenOptions() {
   attachGreenOptionsEvents();
 }
 
+function getDashboardGreenKpi() {
+  const now = Date.now();
+  const DAY_MS = 86400000;
+  const d = new Date();
+  const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  const lastMonthStart = new Date(d.getFullYear(), d.getMonth() - 1, 1).getTime();
+
+  const thisMonth = greenProductsState.logs.filter((log) => log.created_at >= monthStart);
+  const lastMonth = greenProductsState.logs.filter(
+    (log) => log.created_at >= lastMonthStart && log.created_at < monthStart
+  );
+
+  const total = thisMonth.length;
+  const lastTotal = lastMonth.length;
+
+  let delta = null;
+  if (lastTotal > 0) {
+    const pct = Math.round(((total - lastTotal) / lastTotal) * 100);
+    delta = (pct >= 0 ? "+" : "") + pct + "%";
+  } else if (total > 0) {
+    delta = "+100%";
+  }
+
+  const sparkline = Array.from({ length: 12 }, (_, i) => {
+    const dayStart = now - (11 - i) * DAY_MS;
+    const dayEnd = dayStart + DAY_MS;
+    return greenProductsState.logs.filter(
+      (log) => log.created_at >= dayStart && log.created_at < dayEnd
+    ).length;
+  });
+
+  const vera = thisMonth.reduce((sum, log) => sum + log.vera_points, 0);
+
+  return { total, delta, sparkline, vera };
+}
+
 async function renderGreenOptions() {
   const root = document.getElementById("dashboard-root");
   if (!root) return;
