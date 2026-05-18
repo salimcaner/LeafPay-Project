@@ -51,7 +51,7 @@ const DASHBOARD_SUMMARY = {
     title: "Tier 3 · Dogrulanmis",
     meta: "Mayis 2026 · LP-TR-2026-KTN-4471",
     trust: 94,
-    kaiPerSelection: 80,
+    veraPerSelection: 80,
     validUntil: "2026-12",
     tierProgress: 62,
     progressMeta: "3 sertifika gerekli · 1 audit · 2 kampanya",
@@ -67,24 +67,14 @@ const DASHBOARD_SUMMARY = {
       sparkline: [32, 28, 24, 30, 22, 26, 18, 20, 12, 14, 8, 6],
     },
     {
-      eyebrow: "Bu Ay · KAI Dagitimi",
+      eyebrow: "Bu Ay · VERA Dağıtımı",
       value: "124.5K",
       unit: "puan",
-      helper: "≈ 249 kupon karsiligi",
+      helper: "≈ 249 kupon karşılığı",
       progressLabel: "Hedef 150K",
       progress: 83,
       progressAccent: "amber",
       icon: "bolt",
-    },
-    {
-      eyebrow: "Bu Ay · Onlenen Plastik",
-      value: "412",
-      unit: "kg",
-      helper: "≈ 16.480 plastik sise degerinde",
-      progressLabel: "Yillik hedef",
-      progress: 41,
-      progressAccent: "leaf",
-      icon: "plus",
     },
   ],
   roadmap: {
@@ -111,11 +101,44 @@ const DASHBOARD_SUMMARY = {
     category: "Karton kategori",
     sales: "1.847",
     revenue: "₺128K",
-    kai: "+80",
+    vera: "+80",
     trend: "+24%",
     strip: [12, 16, 14, 18, 15, 22, 19, 17, 21, 24, 20, 28, 26, 23, 30, 32, 28, 33, 38, 35, 40, 42, 44, 41, 46, 49, 52, 55, 58, 62],
   },
 };
+
+const TIER_NAMES = ["Aday", "Başlangıç", "Onaylı", "Doğrulanmış"];
+const TIER_VERA  = [0, 20, 50, 80];
+
+function getVerificationBadgeData() {
+  try {
+    const raw = localStorage.getItem("leafpay_verification_result");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.status !== "completed") return null;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+
+function buildBadgeSection(summary) {
+  const vr = getVerificationBadgeData();
+  if (!vr) return summary.badge;
+
+  const tier = vr.tier || 0;
+  const tierName = TIER_NAMES[tier] || "Doğrulanmış";
+  return {
+    tier,
+    title: `Tier ${tier} · ${tierName}`,
+    meta: summary.badge.meta,
+    trust: Math.round(vr.trustScore || vr.score || 0),
+    veraPerSelection: TIER_VERA[tier] ?? summary.badge.veraPerSelection,
+    validUntil: vr.validUntil ? vr.validUntil.slice(0, 7) : summary.badge.validUntil,
+    tierProgress: summary.badge.tierProgress,
+    progressMeta: summary.badge.progressMeta,
+  };
+}
 
 function getDashboardRoot() {
   return document.getElementById("dashboard-root");
@@ -143,9 +166,9 @@ function getTrendSparklineMarkup(points) {
 }
 
 function getTrendBarsMarkup(points) {
-  const max = Math.max(...points);
+  const max = Math.max(...points, 1);
   return points.map((value, index) => {
-    const height = (value / max) * 100;
+    const height = Math.max((value / max) * 100, value > 0 ? 4 : 0);
     const isLast = index === points.length - 1;
     const color = isLast ? "#EF9F27" : (index > 24 ? "#168562" : "#8DD3B7");
     return `<div class="flex-1 rounded-t-sm" style="height:${height}%; background:${color};"></div>`;
@@ -293,26 +316,22 @@ function getTrendProductMarkup(product) {
 
           <div class="grid grid-cols-3 gap-2 pt-2">
             <div>
-              <div class="eyebrow">Satis</div>
+              <div class="eyebrow">${product.col1Label || "Satis"}</div>
               <div class="font-black text-leaf-900 text-lg tabular-nums mt-0.5">${product.sales}</div>
-              <div class="text-[10px] text-leaf-600/80 font-mono">adet</div>
+              <div class="text-[10px] text-leaf-600/80 font-mono">${product.col1Unit || "adet"}</div>
             </div>
             <div>
-              <div class="eyebrow">Gelir</div>
+              <div class="eyebrow">${product.col2Label || "Gelir"}</div>
               <div class="font-black text-leaf-900 text-lg tabular-nums mt-0.5">${product.revenue}</div>
-              <div class="text-[10px] text-leaf-600/80 font-mono">${product.trend} trend</div>
+              <div class="text-[10px] text-leaf-600/80 font-mono">${product.col2Unit || (product.trend + " trend")}</div>
             </div>
             <div>
-              <div class="eyebrow">KAI / satis</div>
-              <div class="font-black text-leaf-900 text-lg tabular-nums mt-0.5">${product.kai}</div>
-              <div class="text-[10px] text-leaf-600/80 font-mono">max odul</div>
+              <div class="eyebrow">${product.col3Label || "VERA / satış"}</div>
+              <div class="font-black text-leaf-900 text-lg tabular-nums mt-0.5">${product.vera}</div>
+              <div class="text-[10px] text-leaf-600/80 font-mono">${product.col3Unit || "max odul"}</div>
             </div>
           </div>
 
-          <div class="flex items-center gap-2 pt-1">
-            <button class="text-xs font-semibold px-3.5 py-2 rounded-full text-white dashboard-accent-button">Urun sayfasi →</button>
-            <button class="text-xs font-semibold px-3.5 py-2 rounded-full border border-leaf-200 text-leaf-700 hover:bg-leaf-50 transition">Kampanya baslat</button>
-          </div>
         </div>
       </div>
 
@@ -327,8 +346,114 @@ function getTrendProductMarkup(product) {
   `;
 }
 
+const TREND_MONTH_NAMES = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+const TREND_OPTION_NAMES = {
+  karton_paketleme: "Karton Paketleme",
+  karbon_notr_kargo: "Karbon Nötr Kargo",
+  agac_dikme_bagis: "Ağaç Dikme Bağışı",
+  minimal_etiket: "Minimal Etiket",
+};
+
+function getTrendProductFromLogs() {
+  const logs = (typeof greenProductsState !== "undefined" ? greenProductsState.logs : null) || [];
+  if (!logs.length) return null;
+
+  const now = Date.now();
+  const DAY_MS = 86400000;
+  const d = new Date();
+  const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  const lastMonthStart = new Date(d.getFullYear(), d.getMonth() - 1, 1).getTime();
+
+  const thisMonth = logs.filter((l) => l.created_at >= monthStart);
+  const lastMonth = logs.filter((l) => l.created_at >= lastMonthStart && l.created_at < monthStart);
+  const searchLogs = thisMonth.length > 0 ? thisMonth : logs;
+
+  // Count selections per product
+  const prodCounts = {};
+  searchLogs.forEach((l) => {
+    const id = l.product_id || "bilinmeyen";
+    prodCounts[id] = (prodCounts[id] || 0) + 1;
+  });
+  const [[topId, topCount]] = Object.entries(prodCounts).sort((a, b) => b[1] - a[1]);
+
+  // Most common option for this product
+  const optCounts = {};
+  searchLogs.filter((l) => l.product_id === topId).forEach((l) => {
+    const name = TREND_OPTION_NAMES[l.option] || l.option || "Diğer";
+    optCounts[name] = (optCounts[name] || 0) + 1;
+  });
+  const topOpt = Object.entries(optCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "Yeşil Seçenek";
+
+  // VERA stats
+  const productLogs = searchLogs.filter((l) => l.product_id === topId);
+  const totalVera = productLogs.reduce((s, l) => s + (l.vera_points || 0), 0);
+  const veraPerSel = productLogs.length > 0 ? Math.round(totalVera / productLogs.length) : 0;
+
+  // Trend vs last month
+  const lastMonthCount = lastMonth.filter((l) => l.product_id === topId).length;
+  let trend = "—";
+  if (lastMonthCount > 0) {
+    const pct = Math.round(((topCount - lastMonthCount) / lastMonthCount) * 100);
+    trend = (pct >= 0 ? "+" : "") + pct + "%";
+  } else if (topCount > 0) {
+    trend = "+100%";
+  }
+
+  // 30-day daily strip (all logs for this product)
+  const strip = Array.from({ length: 30 }, (_, i) => {
+    const dayStart = now - (29 - i) * DAY_MS;
+    const dayEnd = dayStart + DAY_MS;
+    return logs.filter((l) => l.product_id === topId && l.created_at >= dayStart && l.created_at < dayEnd).length;
+  });
+
+  const monthName = TREND_MONTH_NAMES[d.getMonth()];
+  const shortId = topId.length > 30 ? topId.slice(0, 30) + "…" : topId;
+  const skuId = topId.length > 22 ? topId.slice(0, 22) + "…" : topId;
+  const veraFmt = totalVera >= 1000 ? Math.round(totalVera / 100) / 10 + "K" : String(totalVera);
+
+  return {
+    eyebrow: `Trend Yeşil Ürün · ${monthName}`,
+    title: shortId,
+    description: `Bu ayın en çok yeşil seçim yapılan ürünü · ${topCount} webhook logu.`,
+    sku: `ID: ${skuId}`,
+    badge: "#1 · bu ayın en çok seçileni",
+    category: topOpt,
+    sales: fmtNum(topCount),
+    col1Label: "Seçim",
+    col1Unit: "bu ay",
+    revenue: veraFmt,
+    col2Label: "VERA Toplam",
+    col2Unit: `${trend} trend`,
+    vera: "+" + veraPerSel,
+    col3Label: "VERA / seçim",
+    col3Unit: "ortalama",
+    trend,
+    strip,
+  };
+}
+
 function getDashboardMarkup() {
   const summary = DASHBOARD_SUMMARY;
+  summary.badge = buildBadgeSection(summary);
+
+  if (typeof getDashboardGreenKpi === "function") {
+    const greenKpi = getDashboardGreenKpi();
+
+    const kpi0 = summary.kpis[0];
+    kpi0.value = fmtNum(greenKpi.total);
+    kpi0.sparkline = greenKpi.sparkline;
+    if (greenKpi.delta) kpi0.delta = greenKpi.delta;
+
+    const kpi1 = summary.kpis[1];
+    const veraK = Math.round(greenKpi.vera / 1000 * 10) / 10;
+    kpi1.value = veraK >= 1 ? veraK + "K" : fmtNum(greenKpi.vera);
+    kpi1.helper = `≈ ${fmtNum(Math.round(greenKpi.vera / 10))} kupon karşılığı`;
+    kpi1.progress = Math.min(100, Math.round((greenKpi.vera / 150000) * 100));
+  }
+
+  const topProduct = getTrendProductFromLogs();
+  if (topProduct) summary.trendProduct = topProduct;
+
   const currentMonthLabel = DASHBOARD_STATE.activeMonth === "current" ? "Bu Ay" : "Onceki Ay";
 
   return `
@@ -358,7 +483,10 @@ function getDashboardMarkup() {
               <div class="absolute inset-0 rounded-full badge-ring spin-slow opacity-90"></div>
               <div class="absolute inset-[5px] rounded-full bg-leaf-500 flex items-center justify-center">
                 <div class="absolute inset-2 rounded-full border border-dashed border-white/30"></div>
-                <svg viewBox="0 0 24 24" class="w-7 h-7 text-white relative" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 13-9 0 7-3 16-13 16Z"></path><path d="M4 20c1-5 4-9 9-12"></path></svg>
+                <div class="relative text-center text-white">
+                  <div class="text-[8px] font-mono uppercase tracking-widest text-white/70">Tier</div>
+                  <div class="text-[1.6rem] font-black leading-none">${summary.badge.tier}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -371,8 +499,8 @@ function getDashboardMarkup() {
               <div class="text-lg font-bold tabular-nums mt-1">${summary.badge.trust}<span class="text-sm text-white/40">/100</span></div>
             </div>
             <div>
-              <div class="eyebrow text-amber-400/80">KAI / secim</div>
-              <div class="text-lg font-bold tabular-nums mt-1">+${summary.badge.kaiPerSelection}</div>
+              <div class="eyebrow text-amber-400/80">VERA / seçim</div>
+              <div class="text-lg font-bold tabular-nums mt-1">+${summary.badge.veraPerSelection}</div>
             </div>
             <div>
               <div class="eyebrow text-amber-400/80">Gecerli</div>
@@ -380,7 +508,7 @@ function getDashboardMarkup() {
             </div>
           </div>
 
-          <div class="mt-5">
+          <div class="mt-auto pt-5">
             <div class="flex items-center justify-between text-[11px] mb-1.5">
               <span class="text-white/55 font-mono">Tier 4 ilerleme</span>
               <span class="text-amber-400 font-mono font-semibold">%${summary.badge.tierProgress}</span>
@@ -575,7 +703,7 @@ function bindDashboardEvents() {
   });
 }
 
-function renderDashboard() {
+async function renderDashboard() {
   const dashboardRoot = getDashboardRoot();
   if (!dashboardRoot) return;
 
@@ -583,4 +711,15 @@ function renderDashboard() {
   dashboardRoot.innerHTML = getDashboardMarkup();
   bindDashboardEvents();
   renderCO2Result();
+
+  if (!greenProductsState.logs.length && typeof fetchGreenLogs === "function") {
+    try {
+      await fetchGreenLogs();
+    } catch (e) {
+      console.error("Dashboard: yeşil ürün logları alınamadı:", e);
+    }
+    dashboardRoot.innerHTML = getDashboardMarkup();
+    bindDashboardEvents();
+    renderCO2Result();
+  }
 }

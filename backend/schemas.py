@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 class GirisYap(BaseModel):
     e_posta: EmailStr
@@ -29,6 +29,29 @@ class WebhookPayload(BaseModel):
     user_email: str
     order_id: str
     vera_points: int
+
+
+class RozetTaslakKayit(BaseModel):
+    cevaplar: Dict[str, Any]
+    aktif_bolum_idx: int = 0
+    sektor: Optional[str] = None
+
+
+class RozetKirilimMaddesi(BaseModel):
+    id: str
+    title: str
+    score: int
+    max: int
+    pct: int
+
+
+class RozetTamamla(BaseModel):
+    cevaplar: Dict[str, Any]
+    skor: int
+    tier: int
+    guven_skoru: Optional[int] = None
+    kirilim: List[RozetKirilimMaddesi]
+    sektor: Optional[str] = None
 
 
 class MusteriKayit(BaseModel):

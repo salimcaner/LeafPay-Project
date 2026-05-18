@@ -1,7 +1,11 @@
+import random
+import string
+from datetime import datetime, timezone, timedelta
+
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from schemas import SaticiKayit, MusteriKayit, GirisYap, WebhookPayload
+from schemas import SaticiKayit, MusteriKayit, GirisYap, WebhookPayload, RozetTaslakKayit, RozetTamamla
 from typing import Optional
 from database import supabase
 from security import sifreyi_hashle, sifreyi_dogrula, token_olustur, token_dogrula
@@ -166,6 +170,13 @@ def webhook_al(
     return {"status": "ok", "vera_points_awarded": payload.vera_points}
 
 
+def _rozet_id_olustur(sektor: Optional[str]) -> str:
+    yil = datetime.now(timezone.utc).year
+    prefix = (sektor or "gn")[:2].upper()
+    rastgele = "".join(random.choices(string.digits, k=4))
+    return f"LP-{prefix}-{yil}-{rastgele}"
+
+
 @app.get("/satici/webhook-logs")
 def satici_webhook_logs(kullanici: dict = Depends(sadece_satici)):
     sonuc = supabase.table("webhook_logs") \
@@ -175,6 +186,184 @@ def satici_webhook_logs(kullanici: dict = Depends(sadece_satici)):
         .limit(50) \
         .execute()
     return {"logs": sonuc.data}
+
+
+# ──────────────────────────── ROZET ────────────────────────────
+
+@app.get("/satici/rozet")
+def rozet_durumu_getir(kullanici: dict = Depends(sadece_satici)):
+    satici_id = kullanici["id"]
+
+    taslak_sonuc = supabase.table("rozet_testleri") \
+        .select("*") \
+        .eq("satici_id", satici_id) \
+        .eq("durum", "taslak") \
+        .order("olusturma_tarihi", desc=True) \
+        .limit(1) \
+        .execute()
+
+    aktif_sonuc = supabase.table("rozet_testleri") \
+        .select("*") \
+        .eq("satici_id", satici_id) \
+        .eq("durum", "tamamlandi") \
+        .order("tamamlanma_tarihi", desc=True) \
+        .limit(1) \
+        .execute()
+
+    belgeler = []
+    if aktif_sonuc.data:
+        test_id = aktif_sonuc.data[0]["test_id"]
+        belge_sonuc = supabase.table("rozet_belgeleri") \
+            .select("soru_id, dosya_adi, storage_yolu, ai_dogrulandi, ai_skor") \
+            .eq("test_id", test_id) \
+            .execute()
+        belgeler = belge_sonuc.data or []
+
+    return {
+        "taslak": taslak_sonuc.data[0] if taslak_sonuc.data else None,
+        "aktif_rozet": aktif_sonuc.data[0] if aktif_sonuc.data else None,
+        "belgeler": belgeler,
+    }
+
+
+@app.post("/satici/rozet/draft")
+def rozet_taslak_kaydet(veri: RozetTaslakKayit, kullanici: dict = Depends(sadece_satici)):
+    satici_id = kullanici["id"]
+
+    mevcut = supabase.table("rozet_testleri") \
+        .select("test_id") \
+        .eq("satici_id", satici_id) \
+        .eq("durum", "taslak") \
+        .order("olusturma_tarihi", desc=True) \
+        .limit(1) \
+        .execute()
+
+    payload = {
+        "cevaplar": veri.cevaplar,
+        "aktif_bolum_idx": veri.aktif_bolum_idx,
+        "sektor": veri.sektor,
+        "guncelleme_tarihi": datetime.now(timezone.utc).isoformat(),
+    }
+
+    if mevcut.data:
+        test_id = mevcut.data[0]["test_id"]
+        sonuc = supabase.table("rozet_testleri") \
+            .update(payload) \
+            .eq("test_id", test_id) \
+            .execute()
+    else:
+        payload["satici_id"] = satici_id
+        payload["durum"] = "taslak"
+        sonuc = supabase.table("rozet_testleri").insert(payload).execute()
+
+    if not sonuc.data:
+        raise HTTPException(status_code=500, detail="Taslak kaydedilemedi")
+
+    return {"mesaj": "Taslak kaydedildi", "test_id": sonuc.data[0]["test_id"]}
+
+
+@app.delete("/satici/rozet/draft")
+def rozet_taslak_sil(kullanici: dict = Depends(sadece_satici)):
+    satici_id = kullanici["id"]
+
+    mevcut = supabase.table("rozet_testleri") \
+        .select("test_id") \
+        .eq("satici_id", satici_id) \
+        .eq("durum", "taslak") \
+        .execute()
+
+    if not mevcut.data:
+        raise HTTPException(status_code=404, detail="Silinecek taslak bulunamadı")
+
+    for row in mevcut.data:
+        supabase.table("rozet_testleri").delete().eq("test_id", row["test_id"]).execute()
+
+    return {"mesaj": "Taslak silindi"}
+
+
+@app.post("/satici/rozet/tamamla")
+def rozet_tamamla(veri: RozetTamamla, kullanici: dict = Depends(sadece_satici)):
+    satici_id = kullanici["id"]
+    simdi = datetime.now(timezone.utc)
+    gecerlilik = simdi + timedelta(days=180)
+
+    rozet_id = _rozet_id_olustur(veri.sektor)
+
+    mevcut = supabase.table("rozet_testleri") \
+        .select("test_id") \
+        .eq("satici_id", satici_id) \
+        .eq("durum", "taslak") \
+        .order("olusturma_tarihi", desc=True) \
+        .limit(1) \
+        .execute()
+
+    kirilim_listesi = [m.model_dump() for m in veri.kirilim]
+
+    payload = {
+        "durum": "tamamlandi",
+        "cevaplar": veri.cevaplar,
+        "sektor": veri.sektor,
+        "skor": veri.skor,
+        "tier": veri.tier,
+        "guven_skoru": veri.guven_skoru,
+        "kirilim": kirilim_listesi,
+        "rozet_id": rozet_id,
+        "kazanim_tarihi": simdi.isoformat(),
+        "gecerlilik_sonu": gecerlilik.isoformat(),
+        "tamamlanma_tarihi": simdi.isoformat(),
+        "guncelleme_tarihi": simdi.isoformat(),
+    }
+
+    if mevcut.data:
+        test_id = mevcut.data[0]["test_id"]
+        sonuc = supabase.table("rozet_testleri") \
+            .update(payload) \
+            .eq("test_id", test_id) \
+            .execute()
+    else:
+        payload["satici_id"] = satici_id
+        sonuc = supabase.table("rozet_testleri").insert(payload).execute()
+
+    if not sonuc.data:
+        raise HTTPException(status_code=500, detail="Rozet kaydedilemedi")
+
+    test_id = sonuc.data[0]["test_id"]
+
+    dosya_sorulari = [
+        qid for qid, cevap in veri.cevaplar.items()
+        if isinstance(cevap, dict) and cevap.get("type") == "file"
+    ]
+    for qid in dosya_sorulari:
+        cevap = veri.cevaplar[qid]
+        belge = {
+            "test_id": test_id,
+            "satici_id": satici_id,
+            "soru_id": qid,
+            "dosya_adi": cevap.get("name", ""),
+            "dosya_boyutu": cevap.get("size"),
+            "storage_yolu": cevap.get("path", ""),
+            "mime_tipi": cevap.get("mime"),
+        }
+        supabase.table("rozet_belgeleri").upsert(belge, on_conflict="test_id,soru_id").execute()
+
+    return {
+        "mesaj": "Rozet tamamlandı",
+        "rozet_id": rozet_id,
+        "test_id": test_id,
+        "tier": veri.tier,
+        "skor": veri.skor,
+        "gecerlilik_sonu": gecerlilik.isoformat(),
+    }
+
+
+@app.get("/satici/rozet/gecmis")
+def rozet_gecmis(kullanici: dict = Depends(sadece_satici)):
+    sonuc = supabase.table("rozet_testleri") \
+        .select("test_id, durum, sektor, skor, tier, rozet_id, kazanim_tarihi, gecerlilik_sonu, tamamlanma_tarihi, olusturma_tarihi") \
+        .eq("satici_id", kullanici["id"]) \
+        .order("olusturma_tarihi", desc=True) \
+        .execute()
+    return {"gecmis": sonuc.data or []}
 
 
 @app.post("/musteri/giris")

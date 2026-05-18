@@ -29,15 +29,15 @@ body[data-accent="amber"] {
 .pill-mono { font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:.06em; color:#168562; background:#F1FAF6; border:1px solid #BFE7D6; padding:4px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:6px; }
 
 .dash-grid { display:grid; gap:18px; grid-template-columns:repeat(12, 1fr); align-items:start; }
-.area-tier { grid-area:tier; }
-.area-kpi { grid-area:kpi; }
+.area-tier { grid-area:tier; align-self:stretch; display:flex; flex-direction:column; }
+.area-kpi  { grid-area:kpi;  align-self:stretch; display:flex; flex-direction:column; }
 .area-road { grid-area:road; }
 .area-carb { grid-area:carb; }
 .area-tren { grid-area:tren; }
 
 body[data-layout="a"] .dash-grid {
   grid-template-areas:
-    "tier tier tier tier tier kpi kpi kpi kpi kpi kpi kpi"
+    "tier tier tier tier kpi kpi kpi kpi kpi kpi kpi kpi"
     "road road road road road road road road road road road road"
     "carb carb carb carb carb carb carb tren tren tren tren tren";
 }
@@ -55,7 +55,8 @@ body[data-layout="b"] .area-carb {
   top: 5rem;
 }
 
-.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:14px; }
+.kpi-grid { display:flex; flex-direction:column; gap:14px; height:100%; }
+.kpi-grid .stat-card { flex:1; }
 .metric-xl { font-size:2.4rem; }
 
 .stat-card { background:white; border-radius:20px; padding:18px; border:1px solid #E1F5EE; transition:all .2s; }
@@ -101,8 +102,7 @@ body[data-layout="b"] .area-carb {
     grid-template-columns:1fr !important;
   }
   body[data-layout="b"] .area-carb { position:static; }
-}
-
-@media (max-width: 560px) {
-  .kpi-grid { grid-template-columns:1fr; }
+  .area-kpi { align-self:auto; }
+  .kpi-grid { height:auto; }
+  .kpi-grid .stat-card { flex:none; }
 }
