@@ -1,3 +1,10 @@
+const SELLER_VIEW_LABELS = {
+  dashboard: "Anasayfa",
+  istatistikler: "İstatistikler",
+  "yesil-secenekler": "Yeşil Ürünler",
+  "rozet-durumu": "Rozet Durumu",
+};
+
 function renderSidebar() {
   const sidebar = document.getElementById("sidebar");
   if (!sidebar) return;
@@ -16,7 +23,6 @@ function renderSidebar() {
       </div>
 
       <nav class="px-3 py-4 flex-1 space-y-1">
-        <div class="text-[10px] font-mono uppercase tracking-[0.18em] text-leaf-800/40 px-3 mb-2">Genel</div>
         <a href="#" class="sidebar-link active" data-nav="dashboard">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
           Ana Sayfa
@@ -27,13 +33,16 @@ function renderSidebar() {
         </a>
         <a href="#" class="sidebar-link" data-nav="yesil-secenekler">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3C7.46 19.79 8.79 20 10 20a8 8 0 0 0 8-8c0-2-1-3.83-1-3.83Z"/></svg>
-          Yeşil Seçenekler
+          Yeşil Ürünler
         </a>
-        <div class="text-[10px] font-mono uppercase tracking-[0.18em] text-leaf-800/40 px-3 mb-2 mt-5">Hesap</div>
         <a href="#" class="sidebar-link" data-nav="rozet-durumu">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Rozet Durumu
         </a>
+        <a href="#" class="sidebar-link">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6M4.22 4.22l4.24 4.24m7.08 7.08 4.24 4.24M1 12h6m10 0h6M4.22 19.78l4.24-4.24m7.08-7.08 4.24-4.24"/></svg>
+            AI Yol Haritası
+          </a>
       </nav>
     </div>
 
@@ -70,7 +79,7 @@ function renderTopbar() {
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
       <div>
-        <span class="text-[10px] font-mono uppercase tracking-[0.18em] text-leaf-700">Anasayfa</span>
+        <span class="text-[10px] font-mono uppercase tracking-[0.18em] text-leaf-700" data-topbar-section>Anasayfa</span>
         <span class="text-[10px] font-mono text-leaf-800/30 mx-1.5">/</span>
         <span class="text-[10px] font-mono text-leaf-800/55" data-company-name>Koton Mağazacılık</span>
       </div>
@@ -97,6 +106,19 @@ function renderTopbar() {
       </div>
     </div>
   `;
+}
+
+function setActiveSellerView(view) {
+  document.body.setAttribute("data-seller-view", view);
+
+  document.querySelectorAll("[data-nav]").forEach((link) => {
+    link.classList.toggle("active", link.dataset.nav === view);
+  });
+
+  const title = SELLER_VIEW_LABELS[view] || SELLER_VIEW_LABELS.dashboard;
+  document.querySelectorAll("[data-topbar-section]").forEach((element) => {
+    element.textContent = title;
+  });
 }
 
 function bindLayoutEvents() {
@@ -152,17 +174,17 @@ function bindLayoutEvents() {
       e.preventDefault();
       const view = link.dataset.nav;
 
-      document.querySelectorAll("[data-nav]").forEach(l => l.classList.remove("active"));
-      link.classList.add("active");
-
       if (view === "dashboard") {
         renderDashboard();
+      } else if (view === "istatistikler" && typeof renderStatistics === "function") {
+        renderStatistics();
       } else if (view === "yesil-secenekler") {
         renderGreenOptions();
       } else if (view === "rozet-durumu") {
         renderBadgeStatus();
       }
 
+      setActiveSellerView(view);
       applyCompanyInfo();
     });
   });
