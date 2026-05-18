@@ -35,6 +35,7 @@ function hasDraft() {
 async function renderBadgeStatus() {
   const root = document.getElementById("dashboard-root");
   if (!root) return;
+  const targetView = "rozet-durumu";
 
   // Optimistic render from localStorage cache
   const cached = getVerificationResult();
@@ -56,6 +57,7 @@ async function renderBadgeStatus() {
     if (res.ok) apiData = await res.json();
   } catch (e) { /* keep cached render */ }
 
+  if (document.body.getAttribute("data-seller-view") !== targetView) return;
   if (!apiData) return;
 
   const apiRozet   = apiData.aktif_rozet;
@@ -80,11 +82,13 @@ async function renderBadgeStatus() {
       })),
     };
     try { localStorage.setItem(BS_RESULT_KEY, JSON.stringify(result)); } catch (e) { /* ignore */ }
+    if (document.body.getAttribute("data-seller-view") !== targetView) return;
     renderBadgeCompleted(root, result);
   } else {
     if (cached) {
       try { localStorage.removeItem(BS_RESULT_KEY); } catch (e) { /* ignore */ }
     }
+    if (document.body.getAttribute("data-seller-view") !== targetView) return;
     renderBadgeEmpty(root, hasDraftApi);
   }
   bindBadgeStatusEvents();

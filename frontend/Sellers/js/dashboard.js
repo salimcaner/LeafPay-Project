@@ -8,6 +8,7 @@ const SELLER_CARBON_RESULT_KEY = "leafpay_seller_carbon_result";
 
 const DASHBOARD_STATE = {
   activeMonth: "current",
+  greeting: null,
   monthInputs: {
     current: {
       electricity: 4200,
@@ -235,8 +236,50 @@ function getEmptyAiRoadmapCardMarkup() {
   `;
 }
 
+function getEmptyKpiCardMarkup(title, text) {
+  return `
+    <div class="stat-card">
+      <div class="eyebrow">${title}</div>
+      <div class="mt-6 text-lg font-black text-leaf-900">Veri yok</div>
+      <div class="mt-2 text-sm text-leaf-800/60">${text}</div>
+    </div>
+  `;
+}
+
 function getDashboardRoot() {
   return document.getElementById("dashboard-root");
+}
+
+async function fetchDashboardGreetingData() {
+  try {
+    const { token } = typeof getAuthState === "function" ? getAuthState() : { token: "" };
+    if (!token || typeof apiRequest !== "function") return null;
+
+    const [profile, webhookPayload, badgePayload] = await Promise.all([
+      apiRequest("/satici/profil", { headers: { Authorization: `Bearer ${token}` } }),
+      apiRequest("/satici/webhook-logs", { headers: { Authorization: `Bearer ${token}` } }),
+      apiRequest("/satici/rozet", { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+
+    const company = (profile?.sirket_adi || "").trim();
+    const logs = Array.isArray(webhookPayload?.logs) ? webhookPayload.logs : [];
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const monthlySales = logs.filter((log) => {
+      const ts = Date.parse(log.created_at);
+      return Number.isFinite(ts) && ts >= monthStart;
+    }).length;
+
+    const activeBadge = badgePayload?.aktif_rozet || null;
+    const tier = Number(activeBadge?.tier || 0);
+    const detailText = tier > 0
+      ? `Bu ay ${fmtNum(monthlySales)} yesil urun satisi yaptin. Mevcut rozet seviyen Tier ${tier}.`
+      : `Bu ay ${fmtNum(monthlySales)} yesil urun satisi yaptin. Henüz tamamlanmis bir rozetin yok.`;
+
+    return { company, detailText };
+  } catch (error) {
+    return null;
+  }
 }
 
 function renderDashboardLoading() {
@@ -567,10 +610,15 @@ function getTrendProductFromLogs() {
 function getDashboardMarkup() {
   const summary = DASHBOARD_SUMMARY;
   summary.badge = buildBadgeSection(summary);
-  const hasVerificationAttempt = hasAnyVerificationAttempt();
+  const hasCompletedVerification = !!getVerificationBadgeData();
   const roadmapData = getDashboardAiRoadmapData();
+  const greetingData = DASHBOARD_STATE.greeting;
+  const greetingCompany = greetingData?.company || summary.greeting.company;
+  const greetingDetail = hasCompletedVerification
+    ? (greetingData?.detailText || `Bu ay ${fmtNum(summary.greeting.monthlySales)} yesil urun satisi yaptin. Tier 4'e yukselmen icin ${summary.greeting.nextTierSteps} adim kaldi.`)
+    : "Rozet testi tamamlandiginda ana sayfadaki ozet veriler burada gorunur.";
 
-  if (typeof getDashboardGreenKpi === "function") {
+  if (hasCompletedVerification && typeof getDashboardGreenKpi === "function") {
     const greenKpi = getDashboardGreenKpi();
 
     const kpi0 = summary.kpis[0];
@@ -593,16 +641,16 @@ function getDashboardMarkup() {
     <section class="dashboard-wrap">
       <div class="greeting flex flex-wrap items-end justify-between gap-3 mb-6">
         <div>
-          <h1 class="text-[2.1rem] lg:text-[2.4rem] font-black text-leaf-900 tracking-tight leading-[1.05]">Merhaba, <span data-company-name>${summary.greeting.company}</span></h1>
-          <p class="mt-1.5 text-leaf-800/65 text-sm max-w-lg">Bu ay ${fmtNum(summary.greeting.monthlySales)} yesil urun satisi yaptin. Tier 4'e yukselmen icin <b class="text-leaf-700">${summary.greeting.nextTierSteps} adim</b> kaldi.</p>
+          <h1 class="text-[2.1rem] lg:text-[2.4rem] font-black text-leaf-900 tracking-tight leading-[1.05]">Merhaba, <span data-company-name>${greetingCompany}</span></h1>
+          <p class="mt-1.5 text-leaf-800/65 text-sm max-w-lg">${greetingDetail}</p>
         </div>
         <div class="flex items-center gap-2">
           <span class="pill-mono"><span class="w-1.5 h-1.5 rounded-full bg-leaf-500"></span>${summary.greeting.liveLabel}</span>
-        </div>w
+        </div>
       </div>
 
       <div class="dash-grid">
-        ${!hasVerificationAttempt ? getEmptyBadgeCardMarkup() : `
+        ${!hasCompletedVerification ? getEmptyBadgeCardMarkup() : `
         <div class="area-tier card-dark bg-leaf-800 relative overflow-hidden tier-elevated">
           <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-leaf-500/20 blur-3xl pointer-events-none"></div>
           <div class="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-amber-500/10 blur-2xl pointer-events-none"></div>
@@ -655,7 +703,12 @@ function getDashboardMarkup() {
 
         <div class="area-kpi">
           <div class="kpi-grid">
-            ${summary.kpis.map(getKpiCardMarkup).join("")}
+            ${!hasCompletedVerification
+              ? [
+                getEmptyKpiCardMarkup("Satis Ozeti", "Rozet testi tamamlanmadan panel KPI verileri gosterilmez."),
+                getEmptyKpiCardMarkup("VERA Dagitimi", "Tamamlanmis test sonrasi bu alanda dogrulanmis performans verisi gorunur."),
+              ].join("")
+              : summary.kpis.map(getKpiCardMarkup).join("")}
           </div>
         </div>
 
@@ -1036,6 +1089,7 @@ async function renderDashboard() {
     }
   }
 
+  DASHBOARD_STATE.greeting = await fetchDashboardGreetingData();
   dashboardRoot.innerHTML = getDashboardMarkup();
   bindDashboardEvents();
   simplifyDashboardCarbonCard();
