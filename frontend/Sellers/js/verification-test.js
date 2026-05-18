@@ -354,28 +354,32 @@ const COMMON_SECTIONS = [
   },
 
   {
-    id: "documents", title: "Belge Yükleme", meta: "5 alan",
+    id: "documents", title: "Belge Yükleme", meta: "6 belge",
     questions: [
-      { id: "iso14001", type: "file",
-        text: "ISO 14001 — Çevre Yönetim Sistemi sertifikası",
-        hint: "PDF veya görüntü. TÜRKAK akredite belge.",
-        placeholder: "ISO 14001 sertifikası", optional: false, score: 8 },
-      { id: "sustainability_report", type: "file",
-        text: "Son sürdürülebilirlik raporu",
-        hint: "GRI/SASB/TSRS standartlarına uygun en güncel raporunuz.",
-        placeholder: "Sürdürülebilirlik raporu", optional: false, score: 7 },
-      { id: "fsc", type: "file",
-        text: "FSC veya muadil tedarik sertifikası",
-        hint: "Orman ürünleri, geri dönüşümlü hammadde sertifikası.",
-        placeholder: "FSC / muadil sertifika", optional: true, score: 5 },
-      { id: "audit", type: "file",
-        text: "Son operasyon audit raporu",
-        hint: "BSI, KPMG vb. bağımsız audit kuruluşundan.",
-        placeholder: "Audit raporu PDF", optional: true, score: 6 },
-      { id: "supplier_code_doc", type: "file",
-        text: "Tedarikçi Davranış Kuralları belgesi",
-        hint: "Tedarikçilerinizin imzaladığı politika belgesi.",
-        placeholder: "Code of Conduct belgesi", optional: true, score: 5 },
+      { id: "doc_irec", type: "file", docTier: 2,
+        text: "I-REC Sertifikası",
+        hint: "Yenilenebilir enerji kayıt sertifikası — Tier 2'nin kapısını açar.",
+        placeholder: "I-REC sertifikası", optional: true },
+      { id: "doc_iso14001", type: "file", docTier: 2,
+        text: "ISO 14001 — Çevre Yönetim Sistemi",
+        hint: "TÜRKAK veya eşdeğer akredite kurum onaylı — Tier 2'nin kapısını açar.",
+        placeholder: "ISO 14001 sertifikası", optional: true },
+      { id: "doc_iso14064", type: "file", docTier: 2,
+        text: "Kurumsal Karbon Ayak İzi Raporu (ISO 14064-1)",
+        hint: "Bağımsız doğrulanmış karbon raporu — Tier 2'nin kapısını açar.",
+        placeholder: "ISO 14064-1 raporu", optional: true },
+      { id: "doc_sbti", type: "file", docTier: 3,
+        text: "SBTi Onay Mektubu",
+        hint: "Science Based Targets initiative resmi onayı — Tier 3'ün kapısını açar.",
+        placeholder: "SBTi onay mektubu", optional: true },
+      { id: "doc_pas2060", type: "file", docTier: 3,
+        text: "Karbon Nötr / Net Sıfır Sertifikası (PAS 2060 / ISO 14068)",
+        hint: "Karbon nötrlük beyanı sertifikası — Tier 3'ün kapısını açar.",
+        placeholder: "PAS 2060 / ISO 14068 sertifikası", optional: true },
+      { id: "doc_cdp", type: "file", docTier: 3,
+        text: "CDP İklim Değişikliği Skoru (A veya A-)",
+        hint: "Carbon Disclosure Project resmi A/A- belgesi — Tier 3'ün kapısını açar.",
+        placeholder: "CDP skor belgesi", optional: true },
     ],
   },
 ];
@@ -1070,23 +1074,78 @@ function vtRenderQuestion(q) {
   }
 
   if (q.type === "file") {
-    const filled = !!value;
-    const placeholderTitle = filled ? value.name : (q.placeholder || "Belge yükle");
-    const placeholderSub = filled
-      ? `${vtEscapeHtml(value.size || "")} · kaldırmak için tıkla`
-      : `PDF / PNG / JPG · maks. 10 MB${q.optional ? " · opsiyonel" : ""}`;
+    const tierLabel = q.docTier === 2
+      ? `<span class="text-[10px] font-mono font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded-full">Tier 2 belgesi</span>`
+      : q.docTier === 3
+      ? `<span class="text-[10px] font-mono font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-1 rounded-full">Tier 3 belgesi</span>`
+      : "";
+
+    if (!value) {
+      return `
+        <div class="file-slot" data-q-id="${q.id}" data-q-type="file">
+          <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center" style="background:#E1F5EE;">
+            <svg class="w-5 h-5 text-leaf-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold text-leaf-900">${vtEscapeHtml(q.placeholder || "Belge yükle")}</div>
+            <div class="text-[11px] text-leaf-800/55 font-mono mt-0.5">PDF / PNG / JPG / WEBP · maks. 50 MB · opsiyonel</div>
+          </div>
+          ${tierLabel}
+        </div>`;
+    }
+
+    if (value.analyzing) {
+      return `
+        <div class="file-slot" style="cursor:default;" data-q-id="${q.id}" data-q-type="file-analyzing">
+          <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center" style="background:#FBF0DC;">
+            <svg class="w-5 h-5 text-amber-600 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold text-leaf-900">${vtEscapeHtml(value.name)}</div>
+            <div class="text-[11px] text-amber-700 font-mono mt-0.5">AI belge analiz ediyor…</div>
+          </div>
+          ${tierLabel}
+        </div>`;
+    }
+
+    const a = value.analysis || {};
+    if (a.is_valid_document === true) {
+      const expiredBadge = a.is_expired
+        ? `<span class="text-[10px] font-mono font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded">Süresi dolmuş</span>`
+        : `<span class="text-[10px] font-mono font-bold text-leaf-600 bg-leaf-50 border border-leaf-200 px-2 py-1 rounded">Geçerli ✓</span>`;
+      const tierResult = a.estimated_tier
+        ? `<span class="text-[10px] font-mono font-bold px-2 py-1 rounded" style="${a.estimated_tier === 3 ? "color:#7C3AED;background:#F5F3FF;border:1px solid #DDD6FE;" : "color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;"}">Tier ${a.estimated_tier} ✓</span>`
+        : "";
+      return `
+        <div class="file-slot filled" data-q-id="${q.id}" data-q-type="file">
+          <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center" style="background:#1D9E75;">
+            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="text-sm font-bold text-leaf-900">${vtEscapeHtml(a.document_type || value.name)}</div>
+              ${tierResult} ${expiredBadge}
+            </div>
+            <div class="text-[11px] text-leaf-800/60 font-mono mt-0.5">
+              ${a.company_name ? vtEscapeHtml(a.company_name) + " · " : ""}${a.issuing_body ? vtEscapeHtml(a.issuing_body) + " · " : ""}${a.expiry_date ? "Son: " + vtEscapeHtml(a.expiry_date) : ""}
+            </div>
+            ${a.verification_code ? `<div class="text-[10px] font-mono text-leaf-600 mt-0.5">Kod: ${vtEscapeHtml(a.verification_code)}</div>` : ""}
+          </div>
+          <button class="text-[10px] font-mono text-red-500 hover:text-red-700 px-2 py-1 rounded border border-red-200 hover:border-red-300 flex-shrink-0" data-q-clear="${q.id}">Kaldır</button>
+        </div>`;
+    }
+
+    // Geçersiz veya hatalı belge
     return `
-      <div class="file-slot ${filled ? "filled" : ""}" data-q-id="${q.id}" data-q-type="file">
-        <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center" style="background:${filled ? "#1D9E75" : "#E1F5EE"};">
-          ${filled
-            ? `<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
-            : `<svg class="w-5 h-5 text-leaf-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`}
+      <div class="file-slot filled" style="border-color:#FECACA;background:#FFF5F5;" data-q-id="${q.id}" data-q-type="file">
+        <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center" style="background:#FEE2E2;">
+          <svg class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="text-sm font-semibold text-leaf-900">${vtEscapeHtml(placeholderTitle)}</div>
-          <div class="text-[11px] text-leaf-800/55 font-mono mt-0.5">${placeholderSub}</div>
+          <div class="text-sm font-semibold text-red-800">${vtEscapeHtml(value.name)}</div>
+          <div class="text-[11px] text-red-600 font-mono mt-0.5">${a.is_valid_document === false ? "Hedef belge türlerinden biri değil" : "Belge okunamadı"}</div>
         </div>
-        ${filled ? `<span class="text-[10px] font-mono font-bold text-leaf-600 bg-leaf-50 border border-leaf-200 px-2 py-1 rounded">Yüklendi</span>` : ""}
+        <button class="text-[10px] font-mono text-leaf-600 hover:text-leaf-800 px-2 py-1 rounded border border-leaf-200 flex-shrink-0" data-q-clear="${q.id}">Tekrar dene</button>
       </div>`;
   }
 
@@ -1155,12 +1214,47 @@ function vtBindTestEvents(section, isLastSection) {
     const qId = wrap.dataset.qId;
     wrap.addEventListener("click", () => {
       const existing = vtState.answers[qId];
-      const q = section.questions.find((qq) => qq.id === qId);
-      if (existing) {
-        vtState.answers[qId] = null;
-      } else {
-        vtState.answers[qId] = { name: (q && q.placeholder ? q.placeholder : "Belge") + ".pdf", size: "1.4 MB" };
-      }
+      if (existing && !existing.analyzing) return; // doluysa Kaldır butonu halleder
+      if (existing && existing.analyzing) return; // analiz sırasında tıklamayı engelle
+
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".pdf,.jpg,.jpeg,.png,.webp";
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+        vtState.answers[qId] = { name: file.name, size: sizeMB + " MB", analyzing: true };
+        vtRender();
+
+        try {
+          const token = (typeof getAuthState === "function") ? (getAuthState().token || "") : "";
+          const base = typeof getApiBaseUrl === "function" ? getApiBaseUrl() : "";
+          const formData = new FormData();
+          formData.append("dosya", file);
+          const res = await fetch(base + "/satici/rozet/belge-analiz", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token },
+            body: formData,
+          });
+          const analysis = res.ok ? await res.json() : { is_valid_document: false };
+          vtState.answers[qId] = { name: file.name, size: sizeMB + " MB", analysis };
+        } catch (err) {
+          vtState.answers[qId] = { name: file.name, size: sizeMB + " MB", analysis: { is_valid_document: false } };
+        }
+        vtSaveDraft();
+        vtRender();
+      };
+      input.click();
+    });
+  });
+
+  document.querySelectorAll("[data-q-clear]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const qId = btn.dataset.qClear;
+      vtState.answers[qId] = null;
       vtSaveDraft();
       vtRender();
     });
@@ -1203,9 +1297,60 @@ function vtBindTestEvents(section, isLastSection) {
   });
 }
 
+/* ─────────── ANSWER SUMMARY ─────────── */
+function vtBuildAnswerSummary() {
+  const lines = [];
+  vtGetActiveSections().forEach((sec) => {
+    lines.push(`== ${sec.title} ==`);
+    sec.questions.forEach((q) => {
+      const val = vtState.answers[q.id];
+      if (val == null || val === "" || (Array.isArray(val) && val.length === 0)) return;
+      if (q.type === "file") {
+        if (val && val.analysis) {
+          const a = val.analysis;
+          if (a.is_valid_document) {
+            lines.push(`- ${q.text}: DOĞRULANDI — ${a.document_type || "?"} | Kurum: ${a.issuing_body || "?"} | Şirket: ${a.company_name || "?"} | Son: ${a.expiry_date || "belirtilmemiş"} | Tier: ${a.estimated_tier || "?"} | Kod: ${a.verification_code || "yok"}`);
+          } else {
+            lines.push(`- ${q.text}: GEÇERSİZ BELGE (${val.name})`);
+          }
+        }
+        return;
+      }
+      let answerStr = "";
+      if (q.type === "radio" && q.options) {
+        const opt = q.options.find((o) => o.value === val);
+        answerStr = opt ? opt.label : String(val);
+      } else if (q.type === "multi" && q.options && Array.isArray(val)) {
+        answerStr = val.map((v) => { const o = q.options.find((x) => x.value === v); return o ? o.label : v; }).join(", ");
+      } else if (q.type === "scale" && q.scale) {
+        answerStr = `${val}/5 (${q.scale.leftLabel} → ${q.scale.rightLabel})`;
+      } else {
+        answerStr = String(val);
+      }
+      lines.push(`- ${q.text}: ${answerStr}`);
+    });
+  });
+  return lines.join("\n");
+}
+
 /* ─────────── ANALYZING ─────────── */
 function vtRenderAnalyzing(root) {
   const filesCount = Object.values(vtState.answers).filter((v) => v && v.name).length;
+
+  // Start AI call immediately so it runs in parallel with the animation
+  const _computed = vtCalculateScore(vtState.answers);
+  const _aiCallPromise = _vtApi("/satici/rozet/ai-analiz", {
+    method: "POST",
+    body: JSON.stringify({
+      cevaplar: vtState.answers,
+      ozet_metin: vtBuildAnswerSummary(),
+      skor: _computed.score,
+      tier: _computed.tier,
+      guven_skoru: _computed.score,
+      kirilim: _computed.breakdown,
+      sektor: vtState.answers.sector || null,
+    }),
+  });
 
   root.innerHTML = `
     <div class="vt-body" style="min-height:70vh;display:flex;flex-direction:column;justify-content:center;">
@@ -1276,10 +1421,13 @@ function vtRenderAnalyzing(root) {
   });
 
   setTimeout(async () => {
-    const computed = vtCalculateScore(vtState.answers);
+    const apiRes = await _aiCallPromise;
     const now = new Date();
     const valid = new Date(now);
     valid.setMonth(valid.getMonth() + 6);
+
+    const finalTier = (apiRes && apiRes.tier != null) ? apiRes.tier : _computed.tier;
+    const finalScore = (apiRes && apiRes.skor != null) ? apiRes.skor : _computed.score;
 
     const certs = [];
     Object.keys(vtState.answers).forEach((qid) => {
@@ -1292,17 +1440,6 @@ function vtRenderAnalyzing(root) {
     let badgeId = vtBuildBadgeId();
     let validUntilStr = vtIsoDate(valid);
 
-    const apiRes = await _vtApi("/satici/rozet/tamamla", {
-      method: "POST",
-      body: JSON.stringify({
-        cevaplar: vtState.answers,
-        skor: computed.score,
-        tier: computed.tier,
-        guven_skoru: computed.score,
-        kirilim: computed.breakdown,
-        sektor: vtState.answers.sector || null,
-      }),
-    });
     if (apiRes) {
       if (apiRes.rozet_id) badgeId = apiRes.rozet_id;
       if (apiRes.gecerlilik_sonu) validUntilStr = apiRes.gecerlilik_sonu.slice(0, 10);
@@ -1310,15 +1447,16 @@ function vtRenderAnalyzing(root) {
 
     const result = {
       status: "completed",
-      score: computed.score,
-      tier: computed.tier,
+      score: finalScore,
+      tier: finalTier,
       badgeId,
       earnedAt: vtIsoDate(now),
       validUntil: validUntilStr,
-      trustScore: computed.score,
+      trustScore: finalScore,
       answers: vtState.answers,
-      breakdown: computed.breakdown,
+      breakdown: _computed.breakdown,
       certs,
+      ai: apiRes ? (apiRes.ai || null) : null,
     };
 
     try { localStorage.setItem(VT_RESULT_KEY, JSON.stringify(result)); } catch (e) { /* ignore */ }
@@ -1429,29 +1567,51 @@ function vtRenderResult(root) {
         </div>
       </div>
 
-      <div class="bg-amber-50 rounded-3xl border border-amber-200 p-6 mb-8">
-        <div class="flex items-start gap-3">
-          <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-300 flex items-center justify-center flex-shrink-0">
-            <svg class="w-5 h-5 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      ${(function() {
+        const ai = r.ai;
+        const iconSvg = `<svg class="w-5 h-5 text-amber-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>`;
+        const iconBox = `<div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-300 flex items-center justify-center flex-shrink-0">${iconSvg}</div>`;
+        if (ai && (ai.ozet || (ai.oneriler && ai.oneriler.length))) {
+          const ozetHtml = ai.ozet ? `<p class="mt-2 text-sm text-leaf-800">${vtEscapeHtml(ai.ozet)}</p>` : "";
+          const gucluHtml = (ai.guclu_yonler && ai.guclu_yonler.length) ? `
+            <div class="mt-3">
+              <div class="text-[10px] font-mono text-leaf-600 uppercase tracking-widest mb-1.5">Güçlü Yönler</div>
+              <ul class="space-y-1.5 text-sm text-leaf-800">
+                ${ai.guclu_yonler.map((g) => `<li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-leaf-500 mt-2 flex-shrink-0"></span><span>${vtEscapeHtml(g)}</span></li>`).join("")}
+              </ul>
+            </div>` : "";
+          const oneriHtml = (ai.oneriler && ai.oneriler.length) ? `
+            <div class="mt-3">
+              <div class="text-[10px] font-mono text-amber-700 uppercase tracking-widest mb-1.5">Öneriler</div>
+              <ul class="space-y-1.5 text-sm text-leaf-800">
+                ${ai.oneriler.map((o) => `<li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-amber-700 mt-2 flex-shrink-0"></span><span>${vtEscapeHtml(o)}</span></li>`).join("")}
+              </ul>
+            </div>` : "";
+          return `<div class="bg-amber-50 rounded-3xl border border-amber-200 p-6 mb-8">
+            <div class="flex items-start gap-3">
+              ${iconBox}
+              <div class="flex-1 min-w-0">
+                <div class="vt-eyebrow text-amber-700">Gemini AI Analizi</div>
+                <h3 class="font-bold text-leaf-900 mt-1 text-base">LeafPay Sürdürülebilirlik Değerlendirmesi</h3>
+                ${ozetHtml}${gucluHtml}${oneriHtml}
+              </div>
+            </div>
+          </div>`;
+        }
+        const fallbackItems = breakdown.filter((b) => b.pct < 70).slice(0, 3).map((b) =>
+          `<li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-amber-700 mt-2 flex-shrink-0"></span><span><b>${vtEscapeHtml(b.title)}</b> alanında %${b.pct} puan aldın — eksik cevapları gözden geçir, ilgili belgeleri yükle.</span></li>`
+        ).join("") || `<li class="flex items-start gap-2"><span class="w-1 h-1 rounded-full bg-leaf-700 mt-2 flex-shrink-0"></span><span>Tüm bölümlerde güçlü skorların var. Mevcut seviyeni korumak için belgelerini düzenli güncelle.</span></li>`;
+        return `<div class="bg-amber-50 rounded-3xl border border-amber-200 p-6 mb-8">
+          <div class="flex items-start gap-3">
+            ${iconBox}
+            <div class="flex-1 min-w-0">
+              <div class="vt-eyebrow text-amber-700">Daha üst tier için</div>
+              <h3 class="font-bold text-leaf-900 mt-1 text-base">AI önerileri</h3>
+              <ul class="mt-3 space-y-2 text-sm text-leaf-800">${fallbackItems}</ul>
+            </div>
           </div>
-          <div class="flex-1 min-w-0">
-            <div class="vt-eyebrow text-amber-700">Daha üst tier için</div>
-            <h3 class="font-bold text-leaf-900 mt-1 text-base">AI önerileri</h3>
-            <ul class="mt-3 space-y-2 text-sm text-leaf-800">
-              ${(breakdown.filter((b) => b.pct < 70).slice(0, 3).map((b) =>
-                `<li class="flex items-start gap-2">
-                  <span class="w-1 h-1 rounded-full bg-amber-700 mt-2 flex-shrink-0"></span>
-                  <span><b>${vtEscapeHtml(b.title)}</b> alanında %${b.pct} puan aldın — eksik cevapları gözden geçir, ilgili belgeleri yükle.</span>
-                </li>`
-              ).join("")) ||
-              `<li class="flex items-start gap-2">
-                <span class="w-1 h-1 rounded-full bg-leaf-700 mt-2 flex-shrink-0"></span>
-                <span>Tüm bölümlerde güçlü skorların var. Mevcut seviyeni korumak için belgelerini düzenli güncelle.</span>
-              </li>`}
-            </ul>
-          </div>
-        </div>
-      </div>
+        </div>`;
+      })()}
 
       <div class="flex flex-wrap gap-3">
         <button id="vt-go-badge" class="vt-btn-primary flex-1 justify-center text-sm py-4">

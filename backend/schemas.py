@@ -54,6 +54,16 @@ class RozetTamamla(BaseModel):
     sektor: Optional[str] = None
 
 
+class AIAnalizTalep(BaseModel):
+    cevaplar: Dict[str, Any]
+    ozet_metin: str
+    sektor: Optional[str] = None
+    skor: int
+    tier: int
+    guven_skoru: Optional[int] = None
+    kirilim: List[RozetKirilimMaddesi]
+
+
 class MusteriKayit(BaseModel):
     musteri_ad: str
     musteri_soyad: str

@@ -41,6 +41,8 @@ pyroaring==1.1.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
 python-jose==3.5.0
+python-multipart==0.0.20
+pypdf==5.4.0
 realtime==2.30.0
 requests==2.34.2
 rich==14.3.4

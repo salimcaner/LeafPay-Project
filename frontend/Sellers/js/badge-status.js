@@ -547,11 +547,374 @@ function bindBadgeStatusEvents() {
   document.querySelectorAll("[data-badge-cta]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
-      if (typeof renderVerificationTest === "function") {
-        renderVerificationTest();
+      bsOpenMethodSelector();
+    });
+  });
+}
+
+/* ============================================================
+ * YÖNTEM SEÇİCİ
+ * ============================================================ */
+function bsOpenMethodSelector() {
+  const root = document.getElementById("dashboard-root");
+  if (!root) return;
+
+  root.innerHTML = `
+    <section class="badge-wrap">
+      <div class="mb-8">
+        <div class="eyebrow-mono mb-2">Rozet Durumu</div>
+        <h1 class="text-[2.1rem] lg:text-[2.4rem] font-black text-leaf-900 tracking-tight leading-[1.05]">Değerlendirme yöntemini seç</h1>
+        <p class="mt-2 text-leaf-800/65 text-sm max-w-xl">Sertifikasyon sürecini iki farklı yöntemle başlatabilirsin. Her ikisi de aynı AI analizi ve rozet sistemini kullanır.</p>
+      </div>
+
+      <div class="bs-method-grid">
+        <!-- Test -->
+        <button class="bs-method-card" data-method="test">
+          <div class="bs-method-icon bs-method-icon--green">
+            <svg class="w-7 h-7 text-leaf-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="9" y1="13" x2="15" y2="13"/>
+              <line x1="9" y1="17" x2="12" y2="17"/>
+            </svg>
+          </div>
+          <div class="eyebrow-mono">Yöntem 01</div>
+          <h2 class="text-lg font-black text-leaf-900 mt-1 leading-snug">Sertifikasyon Testini Çöz</h2>
+          <p class="text-sm text-leaf-800/60 mt-2 leading-relaxed">Bölümlere ayrılmış sorulara cevap ver. Gerekli belgeleri test sırasında yükle. AI analizi ile tier belirlenir.</p>
+          <div class="bs-method-tags">
+            <span class="bs-method-tag">5 bölüm</span>
+            <span class="bs-method-tag">~20 dk</span>
+            <span class="bs-method-tag">Belge yükleme</span>
+            <span class="bs-method-tag">AI doğrulama</span>
+          </div>
+          <div class="bs-method-cta">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            Teste Başla
+          </div>
+        </button>
+
+        <!-- ESG -->
+        <button class="bs-method-card bs-method-card--esg" data-method="esg">
+          <div class="bs-method-icon bs-method-icon--amber">
+            <svg class="w-7 h-7 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+          <div class="eyebrow-mono">Yöntem 02</div>
+          <h2 class="text-lg font-black text-leaf-900 mt-1 leading-snug">ESG Raporu Yükle</h2>
+          <p class="text-sm text-leaf-800/60 mt-2 leading-relaxed">Hazırladığın ESG veya sürdürülebilirlik raporunu yükle. Yapay zeka raporu analiz eder, tier atar ve yol haritası oluşturur.</p>
+          <div class="bs-method-tags">
+            <span class="bs-method-tag">PDF / JPG / PNG</span>
+            <span class="bs-method-tag">AI analiz</span>
+            <span class="bs-method-tag">Anında sonuç</span>
+          </div>
+          <div class="bs-method-cta">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Raporu Yükle
+          </div>
+        </button>
+      </div>
+    </section>
+  `;
+
+  root.querySelectorAll("[data-method]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const method = btn.dataset.method;
+      if (method === "test") {
+        if (typeof renderVerificationTest === "function") renderVerificationTest();
+      } else if (method === "esg") {
+        renderEsgFlow();
       }
     });
   });
+}
+
+/* ============================================================
+ * ESG RAPORU YÜKLEME AKIŞI
+ * ============================================================ */
+let _esgMsgInterval = null;
+
+function renderEsgFlow() {
+  const root = document.getElementById("dashboard-root");
+  if (!root) return;
+
+  root.innerHTML = `
+    <section class="badge-wrap">
+      <div class="mb-6">
+        <button data-esg-back class="inline-flex items-center gap-1.5 text-sm font-medium text-leaf-700 hover:text-leaf-900 transition">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+          Geri dön
+        </button>
+      </div>
+
+      <div class="bs-esg-wrap">
+        <div class="eyebrow-mono mb-2">ESG Raporu Analizi</div>
+        <h1 class="text-[2rem] lg:text-[2.3rem] font-black text-leaf-900 tracking-tight leading-[1.05]">Raporunu yükle,<br>AI analiz etsin.</h1>
+        <p class="mt-2 text-leaf-800/65 text-sm max-w-lg">PDF veya görsel formatındaki ESG / sürdürülebilirlik raporunu yükle. Yapay zeka içeriği analiz edecek, sürdürülebilirlik seviyeni belirleyecek ve kişisel bir yol haritası oluşturacak.</p>
+
+        <div class="mt-8">
+          <input type="file" id="esg-file-input" class="hidden" accept=".pdf,.jpg,.jpeg,.png" />
+
+          <div id="esg-drop-zone" class="bs-esg-drop">
+            <div id="esg-drop-content">
+              <div class="bs-esg-icon-wrap">
+                <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <div class="font-bold text-leaf-900 text-base">Raporu buraya sürükle veya tıkla</div>
+              <div class="text-sm text-leaf-800/55 mt-1.5 font-mono">PDF · JPG · PNG &nbsp;·&nbsp; Maks. 50 MB</div>
+            </div>
+          </div>
+
+          <div id="esg-error" class="bs-esg-error"></div>
+
+          <button id="esg-analyze-btn" class="bs-analyze-btn" disabled>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            AI Analizi Başlat
+          </button>
+        </div>
+
+        <div class="bs-esg-info-grid">
+          <div class="bs-esg-info-card">
+            <div class="bs-esg-info-emoji">🌍</div>
+            <div class="font-bold text-sm text-leaf-900">Çevre (E)</div>
+            <div class="text-xs text-leaf-800/55 mt-1 leading-relaxed">Karbon emisyonları, enerji verimliliği, atık ve su yönetimi</div>
+          </div>
+          <div class="bs-esg-info-card">
+            <div class="bs-esg-info-emoji">👥</div>
+            <div class="font-bold text-sm text-leaf-900">Sosyal (S)</div>
+            <div class="text-xs text-leaf-800/55 mt-1 leading-relaxed">Çalışan hakları, toplum katkısı, tedarik zinciri etiği</div>
+          </div>
+          <div class="bs-esg-info-card">
+            <div class="bs-esg-info-emoji">🏛️</div>
+            <div class="font-bold text-sm text-leaf-900">Yönetişim (G)</div>
+            <div class="text-xs text-leaf-800/55 mt-1 leading-relaxed">Şeffaflık, risk yönetimi, etik iş standartları</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+
+  const fileInput = root.querySelector("#esg-file-input");
+  const dropZone = root.querySelector("#esg-drop-zone");
+  const analyzeBtn = root.querySelector("#esg-analyze-btn");
+  const errorEl = root.querySelector("#esg-error");
+  let selectedFile = null;
+
+  root.querySelector("[data-esg-back]").addEventListener("click", () => bsOpenMethodSelector());
+
+  dropZone.addEventListener("click", () => fileInput.click());
+  dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("drag-over");
+    const file = e.dataTransfer?.files[0];
+    if (file) _esgSetFile(file, dropZone, errorEl, analyzeBtn, (f) => { selectedFile = f; });
+  });
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) _esgSetFile(file, dropZone, errorEl, analyzeBtn, (f) => { selectedFile = f; });
+  });
+
+  analyzeBtn.addEventListener("click", () => {
+    if (selectedFile) handleEsgUpload(selectedFile);
+  });
+}
+
+function _esgSetFile(file, dropZone, errorEl, analyzeBtn, onSet) {
+  const allowed = ["application/pdf", "image/jpeg", "image/png"];
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  const extAllowed = ["pdf", "jpg", "jpeg", "png"].includes(ext);
+
+  if (!allowed.includes(file.type) && !extAllowed) {
+    errorEl.textContent = "Desteklenmeyen dosya türü. Lütfen PDF, JPG veya PNG yükleyin.";
+    errorEl.style.display = "block";
+    return;
+  }
+  if (file.size > 50 * 1024 * 1024) {
+    errorEl.textContent = "Dosya boyutu 50 MB sınırını aşıyor.";
+    errorEl.style.display = "block";
+    return;
+  }
+
+  errorEl.style.display = "none";
+  onSet(file);
+
+  const content = dropZone.querySelector("#esg-drop-content");
+  const sizeFmt = file.size < 1024 * 1024
+    ? (file.size / 1024).toFixed(0) + " KB"
+    : (file.size / (1024 * 1024)).toFixed(1) + " MB";
+
+  dropZone.classList.add("has-file");
+  content.innerHTML = `
+    <div class="bs-esg-file-row">
+      <div class="bs-esg-file-icon">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="text-left">
+        <div class="font-semibold text-sm text-leaf-900">${escapeHtml(file.name)}</div>
+        <div class="text-xs font-mono text-leaf-800/55 mt-0.5">${escapeHtml(sizeFmt)} · ${ext.toUpperCase()}</div>
+      </div>
+      <button class="bs-esg-remove" data-esg-remove title="Kaldır">✕</button>
+    </div>
+  `;
+
+  content.querySelector("[data-esg-remove]").addEventListener("click", (e) => {
+    e.stopPropagation();
+    onSet(null);
+    dropZone.classList.remove("has-file");
+    content.innerHTML = `
+      <div class="bs-esg-icon-wrap">
+        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="font-bold text-leaf-900 text-base">Raporu buraya sürükle veya tıkla</div>
+      <div class="text-sm text-leaf-800/55 mt-1.5 font-mono">PDF · JPG · PNG &nbsp;·&nbsp; Maks. 50 MB</div>
+    `;
+    analyzeBtn.disabled = true;
+  });
+
+  analyzeBtn.disabled = false;
+}
+
+function _esgRenderAnalyzing(root, fileName) {
+  if (_esgMsgInterval) { clearInterval(_esgMsgInterval); _esgMsgInterval = null; }
+
+  const messages = [
+    "ESG raporu okunuyor...",
+    "Çevre politikaları analiz ediliyor...",
+    "Karbon emisyon verileri değerlendiriliyor...",
+    "Sosyal sorumluluk uygulamaları inceleniyor...",
+    "Yönetişim standartları kontrol ediliyor...",
+    "Tier seviyesi hesaplanıyor...",
+    "Kişiselleştirilmiş yol haritası oluşturuluyor...",
+  ];
+
+  root.innerHTML = `
+    <section class="badge-wrap">
+      <div class="bs-esg-analyzing">
+        <div class="bs-esg-spinner-wrap">
+          <div class="bs-esg-spinner-track"></div>
+          <div class="bs-esg-spinner-arc"></div>
+          <div class="bs-esg-spinner-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8">
+              <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3C7.46 19.79 8.79 20 10 20a8 8 0 0 0 8-8c0-2-1-3.83-1-3.83Z"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="eyebrow-mono mb-2">ESG Analizi</div>
+        <h2 class="text-xl font-black text-leaf-900">Raporun analiz ediliyor</h2>
+        <p class="text-sm text-leaf-800/55 mt-1 mb-5 font-mono">${escapeHtml(fileName)}</p>
+
+        <div id="esg-analyzing-msg" class="bs-esg-analyzing-msg">${escapeHtml(messages[0])}</div>
+      </div>
+    </section>
+  `;
+
+  let idx = 0;
+  const msgEl = root.querySelector("#esg-analyzing-msg");
+  _esgMsgInterval = setInterval(() => {
+    idx = (idx + 1) % messages.length;
+    if (msgEl) msgEl.textContent = messages[idx];
+  }, 1800);
+}
+
+function _esgRenderError(root, message) {
+  if (_esgMsgInterval) { clearInterval(_esgMsgInterval); _esgMsgInterval = null; }
+
+  root.innerHTML = `
+    <section class="badge-wrap">
+      <div class="max-w-md mx-auto text-center" style="padding: 80px 0;">
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style="background:#FEF2F2;border:1px solid #FECACA;">
+          <svg class="w-7 h-7" style="color:#EF4444;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-black text-leaf-900 mb-2">Analiz başarısız</h2>
+        <p class="text-sm text-leaf-800/60 mb-7 leading-relaxed">${escapeHtml(message)}</p>
+        <button data-esg-retry class="btn-amber">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.74"/></svg>
+          Tekrar Dene
+        </button>
+      </div>
+    </section>
+  `;
+
+  root.querySelector("[data-esg-retry]").addEventListener("click", () => renderEsgFlow());
+}
+
+async function handleEsgUpload(file) {
+  const root = document.getElementById("dashboard-root");
+  if (!root) return;
+
+  _esgRenderAnalyzing(root, file.name);
+
+  const startTime = Date.now();
+  const MIN_ANIM_MS = 3500;
+
+  try {
+    const token = (typeof getAuthState === "function") ? (getAuthState().token || "") : "";
+    const base  = (typeof getApiBaseUrl === "function") ? getApiBaseUrl() : "";
+
+    const formData = new FormData();
+    formData.append("dosya", file);
+
+    const res = await fetch(base + "/satici/rozet/esg-analiz", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token },
+      body: formData,
+    });
+
+    const elapsed = Date.now() - startTime;
+    if (elapsed < MIN_ANIM_MS) await new Promise(r => setTimeout(r, MIN_ANIM_MS - elapsed));
+
+    if (_esgMsgInterval) { clearInterval(_esgMsgInterval); _esgMsgInterval = null; }
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      _esgRenderError(root, errData.detail || "Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+      return;
+    }
+
+    const data = await res.json();
+
+    const result = {
+      status:     "completed",
+      score:      data.skor || 0,
+      tier:       data.tier || 0,
+      badgeId:    data.rozet_id || "—",
+      earnedAt:   data.kazanim_tarihi ? data.kazanim_tarihi.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      validUntil: data.gecerlilik_sonu ? data.gecerlilik_sonu.slice(0, 10) : "—",
+      trustScore: data.skor || 0,
+      answers:    { esg_raporu: { type: "esg_upload", name: file.name } },
+      breakdown:  Array.isArray(data.kirilim) ? data.kirilim : [],
+      certs:      [],
+      ai:         data.ai || null,
+      method:     "esg",
+    };
+
+    try { localStorage.setItem(BS_RESULT_KEY, JSON.stringify(result)); } catch (e) { /* ignore */ }
+
+    renderBadgeCompleted(root, result);
+    bindBadgeStatusEvents();
+
+  } catch (err) {
+    const elapsed = Date.now() - startTime;
+    if (elapsed < MIN_ANIM_MS) await new Promise(r => setTimeout(r, MIN_ANIM_MS - elapsed));
+    if (_esgMsgInterval) { clearInterval(_esgMsgInterval); _esgMsgInterval = null; }
+    _esgRenderError(root, "Bağlantı hatası. İnternet bağlantınızı kontrol edip tekrar deneyin.");
+  }
 }
 
 function escapeHtml(value) {
