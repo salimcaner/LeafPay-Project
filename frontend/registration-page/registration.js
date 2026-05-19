@@ -28,7 +28,7 @@ const state = {
 
 const appRoot = document.getElementById('app-root');
 const loginPageHref = '../login-page/login.html';
-const sellerDashboardHref = '../Sellers/index.html';
+const sellerDashboardHref = '/panel/';
 const customerRedirectHref = '../Customers/index.html';
 
 function getRedirectForRole(role) {
