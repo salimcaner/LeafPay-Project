@@ -11,11 +11,11 @@ function getApiBaseUrl() {
   const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
 
   if (!normalizedBaseUrl) {
-    throw new Error("API base URL tanımlı değil.");
+    throw new Error("API base URL tanımlı değil. `frontend/shared/env.js` içindeki `API_BASE_URL` değerini kontrol edin.");
   }
 
   if (!/^https?:\/\//i.test(normalizedBaseUrl)) {
-    throw new Error("API base URL mutlak bir adres olmalı.");
+    throw new Error("API base URL mutlak bir adres olmalı. Örnek: http://127.0.0.1:8000");
   }
 
   return normalizedBaseUrl;
