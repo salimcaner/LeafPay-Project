@@ -58,6 +58,15 @@ function aiGetStepMarker(status, index) {
   return `<div class="step-marker todo">${index + 1}</div>`;
 }
 
+function aiCalcPotansiyelArtis(result) {
+  if (!result || !result.ai || !Array.isArray(result.ai.yol_haritasi)) return 0;
+  const ham = result.ai.yol_haritasi
+    .filter(s => s.durum !== "tamamlandi")
+    .reduce((sum, s) => sum + (parseInt(s.etki_puani) || 0), 0);
+  const tavan = Math.max(0, 100 - (result.score || 0));
+  return Math.min(ham, tavan);
+}
+
 function aiInferStrengthsAndWeaknesses(result) {
   if (!result || !result.ai) return null;
   const ai = result.ai;
@@ -88,8 +97,29 @@ function aiBuildCarbonRecommendations(carbonResult) {
 }
 
 function aiBuildTopActions(result) {
-  if (!result || !result.ai || !Array.isArray(result.ai.oneriler) || !result.ai.oneriler.length) return [];
-  return result.ai.oneriler.slice(0, 3);
+  const tier = result ? Number(result.tier) : 1;
+  const tierMap = {
+    1: "Tier 2 için karbon ayak izini azaltmaya yönelik bir sertifika veya belge edinmeyi hedefleyin",
+    2: "Tier 3 için yenilenebilir enerji kullanımını belgeleyin ve akredite bir kuruluştan onay alın",
+    3: "Mevcut Tier 3 seviyenizi koruyun; yıllık yenileme sürecinizi ve belge geçerlilik tarihlerini takip edin",
+  };
+  const tierProgressMap = {
+    1: "Tier 2 geçişini önceliklendirin; belgeleme planınızı bu hafta oluşturun",
+    2: "Tier 3'e geçiş planına öncelik verin ve belgeleme sürecinizi hızlandırın",
+    3: "Tier 3 seviyenizi koruyun ve sertifikalarınızın yenileme tarihlerini takip edin",
+  };
+  const tierReportMap = {
+    1: "Aylık sürdürülebilirlik metriklerinizi kayıt altına almaya başlayın; raporlama alışkanlığı tier geçişini hızlandırır",
+    2: "Çeyrek bazlı sürdürülebilirlik raporu hazırlayın; bu belgeler Tier 3 değerlendirmesinde doğrudan kullanılır",
+    3: "Yıllık sürdürülebilirlik raporunuzu yayınlayın ve paydaşlarınızla paylaşın",
+  };
+  const firstAction = tierMap[tier] || tierMap[1];
+  const pinnedAction = tierProgressMap[tier] || tierProgressMap[1];
+  const reportAction = tierReportMap[tier] || tierReportMap[1];
+  const aiActions = (result && result.ai && Array.isArray(result.ai.oneriler))
+    ? result.ai.oneriler.slice(0, 2)
+    : [];
+  return [firstAction, pinnedAction, ...aiActions, reportAction].slice(0, 5);
 }
 
 const _EMPTY_ANALYSIS = `<div class="roadmap-card"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><div class="font-bold text-leaf-900">AI analizi henüz üretilmedi</div><div class="text-sm text-leaf-800/60 mt-2">Doğrulama testini tamamladığında AI gerçek analizi burada gösterir.</div></div></div>`;
@@ -106,14 +136,14 @@ function getAiRoadmapAnalysisMarkup(result) {
           <div>
             <div class="eyebrow text-amber-400 mb-2">AI Analiz Ozeti</div>
             <div class="text-2xl font-black tracking-tight">Tier ${result.tier} · Test skoru ${result.score}/100</div>
-            <div class="text-sm text-white/60 mt-1">Guven skoru ${result.trustScore || result.score}/100 · Son analiz ${result.earnedAt || "—"}</div>
+            <div class="text-sm text-white/60 mt-1">Son analiz ${result.earnedAt || "—"}</div>
           </div>
           <span class="roadmap-pill" style="background:rgba(255,255,255,.06);color:#F5B656;border-color:rgba(255,255,255,.12);">${result.badgeId || "Rozet ID yok"}</span>
         </div>
         <div class="roadmap-kpi-grid mt-5">
           <div class="roadmap-stat bg-white/5 border-white/10"><div class="eyebrow text-amber-400/80">Mevcut Tier</div><div class="text-3xl font-black text-white mt-2">${result.tier}</div></div>
           <div class="roadmap-stat bg-white/5 border-white/10"><div class="eyebrow text-amber-400/80">Test Skoru</div><div class="text-3xl font-black text-white mt-2">${result.score}</div></div>
-          <div class="roadmap-stat bg-white/5 border-white/10"><div class="eyebrow text-amber-400/80">Guven Skoru</div><div class="text-3xl font-black text-white mt-2">${result.trustScore || result.score}</div></div>
+          <div class="roadmap-stat bg-white/5 border-white/10"><div class="eyebrow text-amber-400/80">Potansiyel Artis</div><div class="text-3xl font-black text-amber-400 mt-2">+${aiCalcPotansiyelArtis(result)}</div></div>
         </div>
         ${(insights.strengths.length || insights.weaknesses.length) ? `
         <div class="grid sm:grid-cols-2 gap-4 mt-5">
@@ -134,15 +164,20 @@ function getAiRoadmapStepsMarkup(result) {
 
   const isMaxTier = Number(result.tier) >= 3;
   const targetTier = isMaxTier ? 3 : Number(result.tier) + 1;
-  const steps = result.ai.yol_haritasi.map((s) => ({
+  const rozetId = result.badgeId || result.rozetId || "x";
+  const doneStorageKey = `leafpay_steps_done_${rozetId}`;
+  let userDone = [];
+  try { userDone = JSON.parse(localStorage.getItem(doneStorageKey) || "[]"); } catch (e) { /* ignore */ }
+
+  const steps = result.ai.yol_haritasi.map((s, i) => ({
     title: s.baslik || "",
     description: s.aciklama || "",
     priority: s.oncelik || "orta",
-    impact: s.etki_puani || 10,
     status: s.durum || "yapilacak",
     cta: s.eylem || "Baslat",
+    effectiveDone: s.durum === "tamamlandi" || userDone.includes(i),
   }));
-  const doneCount = steps.filter((s) => s.status === "tamamlandi").length;
+  const doneCount = steps.filter((s) => s.effectiveDone).length;
 
   return `
     <div class="roadmap-card">
@@ -152,24 +187,29 @@ function getAiRoadmapStepsMarkup(result) {
           <div class="font-bold text-leaf-900 mt-1 text-lg">${isMaxTier ? "Maksimum tier seviyesindesin" : `Tier ${result.tier}'den Tier ${targetTier}'ye gecis planin`}</div>
           <div class="text-xs text-leaf-800/60 mt-1">${isMaxTier ? "Odak noktasi mevcut seviyeyi korumak ve yenileme adimlarini kacirmamak." : "AI, bir ust seviyeye cikis icin en etkili adimlari onceliklendirdi."}</div>
         </div>
-        <span class="roadmap-pill">${doneCount}/${steps.length} tamamlandi</span>
+        <span class="roadmap-pill rs-done-count">${doneCount}/${steps.length} tamamlandi</span>
       </div>
       <div class="roadmap-stepper">
-        ${steps.map((step, index) => `
-          <div class="roadmap-step ${step.status === "devam" ? "current" : ""} ${step.status === "tamamlandi" ? "done" : ""}">
-            ${aiGetStepMarker(step.status, index)}
-            <div>
+        ${steps.map((step, index) => {
+          const effStatus = step.effectiveDone ? "tamamlandi" : step.status;
+          const isUserMarked = step.effectiveDone && step.status !== "tamamlandi";
+          return `
+          <div class="roadmap-step ${effStatus === "devam" ? "current" : ""} ${step.effectiveDone ? "done" : ""}" id="rs-step-${index}">
+            ${aiGetStepMarker(effStatus, index)}
+            <div style="flex:1;min-width:0">
               <div class="flex items-start justify-between gap-3 flex-wrap">
-                <div>
+                <div style="flex:1;min-width:0">
                   <div class="font-semibold text-leaf-900 text-base">${step.title}</div>
                   <div class="text-sm text-leaf-800/62 mt-1">${step.description}</div>
                 </div>
-                <button class="roadmap-action-btn">${step.cta}</button>
+                <button class="rs-done-btn${step.effectiveDone ? " active" : ""}" data-step-index="${index}" data-storage-key="${doneStorageKey}" data-ai-done="${step.status === "tamamlandi" ? "1" : "0"}">
+                  ${step.effectiveDone ? "✓ Tamamlandı" : "İşaretle"}
+                </button>
               </div>
-              <div class="step-meta">${aiGetPriorityBadge(step.priority)}${aiGetStatusBadge(step.status)}<span class="impact-badge">Etki · ${step.impact} puan</span></div>
+              <div class="step-meta">${aiGetPriorityBadge(step.priority)}${aiGetStatusBadge(effStatus)}</div>
             </div>
-          </div>
-        `).join("")}
+          </div>`;
+        }).join("")}
       </div>
     </div>
   `;
@@ -211,36 +251,122 @@ function getAiRoadmapCarbonMarkup(carbonResult) {
   `;
 }
 
-function getAiRoadmapPriorityActionsMarkup(result, carbonResult) {
-  const actions = aiBuildTopActions(result);
-  const hasActions = actions.length > 0;
+function getAiRoadmapPriorityActionsMarkup(result) {
+  // Fix 2: empty state sadece result yoksa gösterilsin; hardcoded aksiyonlar her zaman actions.length > 0 döndürürdü
+  const hasResult = !!result;
+  const actions = hasResult ? aiBuildTopActions(result) : [];
+  // Fix 4: rozetId null iken "x" paylaşım sorununu önlemek için result yoksa cache kullanılmaz
+  const rozetId = result ? (result.badgeId || result.rozetId || "") : "";
+
+  function _actionItemHtml(item, index) {
+    const cacheKey = rozetId ? `leafpay_ax_${rozetId}_${index}` : null;
+    let cached = null;
+    if (cacheKey) { try { cached = localStorage.getItem(cacheKey); } catch (e) { /* ignore */ } }
+    const encodedAction = encodeURIComponent(item);
+    return `
+      <div class="action-item" id="ai-action-wrap-${index}">
+        <button class="action-explain-btn" data-index="${index}" data-action="${encodedAction}" data-cache-key="${cacheKey || ""}">AI Açıkla</button>
+        <div class="flex items-center gap-3 mt-2">
+          <div class="step-marker todo">${index + 1}</div>
+          <div class="font-semibold text-leaf-900">${item}</div>
+        </div>
+        <div class="action-explain-area${cached ? " visible" : ""}" id="ai-explain-area-${index}">
+          ${cached ? `<p class="action-explain-text">${cached}</p>` : ""}
+        </div>
+      </div>`;
+  }
 
   return `
     <div class="roadmap-card">
       <div class="eyebrow">Oncelikli Aksiyonlar</div>
-      <div class="font-bold text-leaf-900 mt-1 text-lg">AI'in sectigi ilk 3 aksiyon</div>
-      ${!hasActions
-        ? `<div class="empty-state mt-4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-4Z"></path></svg><div class="font-bold text-leaf-900">Aksiyon önerisi henüz üretilmedi</div><div class="text-sm text-leaf-800/60 mt-2">Doğrulama testini tamamladığında AI en kritik 3 adımı burada sıralar.</div></div>`
-        : `<div class="action-list mt-4">${actions.map((item, index) => `<div class="action-item"><div class="flex items-center gap-3"><div class="step-marker ${index === 0 ? "progress" : "todo"}">${index + 1}</div><div class="font-semibold text-leaf-900">${item}</div></div></div>`).join("")}</div>`}
+      <div class="font-bold text-leaf-900 mt-1 text-lg">AI'in sectigi ilk 5 aksiyon</div>
+      ${!hasResult
+        ? `<div class="empty-state mt-4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-4Z"></path></svg><div class="font-bold text-leaf-900">Aksiyon önerisi henüz üretilmedi</div><div class="text-sm text-leaf-800/60 mt-2">Doğrulama testini tamamladığında AI en kritik 5 adımı burada sıralar.</div></div>`
+        : `<div class="action-list mt-4">${actions.map(_actionItemHtml).join("")}</div>`}
     </div>
   `;
+}
+
+function aiBindPriorityActionEvents(result) {
+  const tier = result ? Number(result.tier) : 1;
+  document.querySelectorAll(".action-explain-btn").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      const index = this.dataset.index;
+      const action = decodeURIComponent(this.dataset.action);
+      const cacheKey = this.dataset.cacheKey;
+      const area = document.getElementById("ai-explain-area-" + index);
+      if (!area) return;
+
+      // Toggle if already showing cached result
+      if (area.classList.contains("visible")) {
+        area.classList.remove("visible");
+        this.textContent = "AI Açıkla";
+        return;
+      }
+
+      // Show from cache without API call
+      let cached = null;
+      try { cached = localStorage.getItem(cacheKey); } catch (e) { /* ignore */ }
+      if (cached) {
+        area.innerHTML = `<p class="action-explain-text">${cached}</p>`;
+        area.classList.add("visible");
+        this.textContent = "Gizle";
+        return;
+      }
+
+      // Fetch from API
+      this.textContent = "Yükleniyor...";
+      this.disabled = true;
+      area.innerHTML = `<div class="action-explain-loading"><span class="action-explain-dot"></span><span class="action-explain-dot"></span><span class="action-explain-dot"></span></div>`;
+      area.classList.add("visible");
+
+      try {
+        const token = (typeof getAuthState === "function") ? (getAuthState().token || "") : "";
+        const base = (typeof getApiBaseUrl === "function") ? getApiBaseUrl() : "";
+        const res = await fetch(base + "/satici/rozet/aksiyon-acikla", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ aksiyon: action, tier: tier }),
+        });
+        if (!res.ok) throw new Error("api_error");
+        const data = await res.json();
+        const text = data.aciklama || "Açıklama üretilemedi.";
+        if (cacheKey) { try { localStorage.setItem(cacheKey, text); } catch (e) { /* ignore */ } }
+        area.innerHTML = `<p class="action-explain-text">${text}</p>`;
+        this.textContent = "Gizle";
+        this.disabled = false;
+      } catch (e) {
+        area.innerHTML = `<p class="action-explain-error">Açıklama yüklenemedi, lütfen tekrar deneyin.</p>`;
+        area.classList.remove("visible");
+        this.textContent = "AI Açıkla";
+        this.disabled = false;
+      }
+    });
+  });
 }
 
 function getAiRoadmapSummaryMarkup(result) {
   const hasAi = result && result.ai;
   const aiSteps = (hasAi && Array.isArray(result.ai.yol_haritasi) && result.ai.yol_haritasi.length)
     ? result.ai.yol_haritasi : null;
-  const completed = aiSteps ? aiSteps.filter((s) => s.durum === "tamamlandi").length : 0;
   const total = aiSteps ? aiSteps.length : 0;
 
-  const score = hasAi && result.ai.skor != null ? result.ai.skor : (result ? result.score : 0);
-  const tier = result ? Number(result.tier) : 0;
-  let progress = 0;
-  if (tier === 0) progress = Math.round(Math.min(score / 40, 1) * 100);
-  else if (tier === 1) progress = Math.round(Math.min((score - 40) / 20, 1) * 100);
-  else if (tier === 2) progress = Math.round(Math.min((score - 60) / 20, 1) * 100);
-  else progress = 100;
+  // Merge AI done + user-marked done from localStorage
+  const rozetId = result ? (result.badgeId || result.rozetId || "x") : "x";
+  let userDone = [];
+  try { userDone = JSON.parse(localStorage.getItem(`leafpay_steps_done_${rozetId}`) || "[]"); } catch (e) { /* ignore */ }
+  const aiDoneCount = aiSteps ? aiSteps.filter(function (s) { return s.durum === "tamamlandi"; }).length : 0;
+  const userDoneExtra = userDone.filter(function (i) {
+    const s = aiSteps ? aiSteps[i] : null;
+    return s && s.durum !== "tamamlandi";
+  }).length;
+  const completed = aiDoneCount + userDoneExtra;
 
+  const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const tier = result ? Number(result.tier) : 0;
   const nextLevel = !result ? "Tier bilgisi yok" : (tier >= 3 ? "Tier 3 korunuyor" : `Tier ${tier + 1}`);
 
   return `
@@ -249,17 +375,83 @@ function getAiRoadmapSummaryMarkup(result) {
       <div class="font-bold text-leaf-900 mt-1 text-lg">Bir sonraki seviye durumu</div>
       ${!result ? `<div class="text-sm text-leaf-800/60 mt-3">Yuzdelik ilerleme gormek icin once dogrulama testi tamamlanmali.</div>` : `
         <div class="mt-4">
-          <div class="flex items-center justify-between text-[11px] font-mono text-leaf-800/55 mb-1.5"><span>Tier ilerlemesi</span><span class="font-semibold text-leaf-700">%${progress}</span></div>
-          <div class="roadmap-progress"><div class="roadmap-progress-fill" style="width:${progress}%"></div></div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-leaf-800/55 mb-1.5"><span>Adim tamamlama</span><span id="sum-progress-pct" class="font-semibold text-leaf-700">%${progress}</span></div>
+          <div class="roadmap-progress"><div id="sum-progress-fill" class="roadmap-progress-fill" style="width:${progress}%"></div></div>
         </div>
         <div class="roadmap-kpi-grid mt-4">
-          <div class="meta-box"><div class="eyebrow">Tamamlanan aksiyon</div><div class="font-bold text-leaf-900 mt-1">${completed}/${total}</div></div>
+          <div class="meta-box"><div class="eyebrow">Tamamlanan aksiyon</div><div class="font-bold text-leaf-900 mt-1" id="sum-completed">${completed}/${total}</div></div>
           <div class="meta-box"><div class="eyebrow">Bir sonraki seviye</div><div class="font-bold text-leaf-900 mt-1">${nextLevel}</div></div>
-          <div class="meta-box"><div class="eyebrow">Guven skoru</div><div class="font-bold text-leaf-900 mt-1">${result.trustScore || result.score}/100</div></div>
+          <div class="meta-box"><div class="eyebrow">Potansiyel artis</div><div class="font-bold text-leaf-900 mt-1">+${aiCalcPotansiyelArtis(result)} puan</div></div>
         </div>
       `}
     </div>
   `;
+}
+
+function aiBindStepDoneEvents(result) {
+  document.querySelectorAll(".rs-done-btn").forEach(function (btn) {
+    if (btn.dataset.aiDone === "1") return; // AI tarafından tamamlanan adımlar değiştirilemez
+    btn.addEventListener("click", function () {
+      const idx = parseInt(this.dataset.stepIndex);
+      const storageKey = this.dataset.storageKey;
+      let done = [];
+      try { done = JSON.parse(localStorage.getItem(storageKey) || "[]"); } catch (e) { /* ignore */ }
+
+      const wasMarked = done.includes(idx);
+      if (wasMarked) {
+        done = done.filter(function (i) { return i !== idx; });
+      } else {
+        done.push(idx);
+      }
+      try { localStorage.setItem(storageKey, JSON.stringify(done)); } catch (e) { /* ignore */ }
+
+      const stepEl = document.getElementById("rs-step-" + idx);
+      if (stepEl) {
+        const markerEl = stepEl.querySelector(".step-marker");
+        if (!wasMarked) {
+          stepEl.classList.add("done");
+          stepEl.classList.remove("current");
+          if (markerEl) { markerEl.className = "step-marker done"; markerEl.textContent = "✓"; }
+          this.classList.add("active");
+          this.textContent = "✓ Tamamlandı";
+          // Update status badge inside this step
+          const statusBadgeEl = stepEl.querySelector(".status-badge");
+          if (statusBadgeEl) { statusBadgeEl.className = "status-badge status-done"; statusBadgeEl.textContent = "Tamamlandi"; }
+        } else {
+          stepEl.classList.remove("done");
+          if (markerEl) { markerEl.className = "step-marker todo"; markerEl.textContent = String(idx + 1); }
+          this.classList.remove("active");
+          this.textContent = "İşaretle";
+          const statusBadgeEl = stepEl.querySelector(".status-badge");
+          if (statusBadgeEl) { statusBadgeEl.className = "status-badge status-todo"; statusBadgeEl.textContent = "Yapilacak"; }
+        }
+      }
+
+      // Update count pill + summary card
+      if (result && result.ai && Array.isArray(result.ai.yol_haritasi)) {
+        const total = result.ai.yol_haritasi.length;
+        const aiDoneCount = result.ai.yol_haritasi.filter(function (s) { return s.durum === "tamamlandi"; }).length;
+        const userDoneNew = done.filter(function (i) {
+          const s = result.ai.yol_haritasi[i];
+          return s && s.durum !== "tamamlandi";
+        }).length;
+        const newCompleted = aiDoneCount + userDoneNew;
+        const newProgress = total > 0 ? Math.round((newCompleted / total) * 100) : 0;
+
+        const countEl = document.querySelector(".rs-done-count");
+        if (countEl) countEl.textContent = `${newCompleted}/${total} tamamlandi`;
+
+        const sumCompleted = document.getElementById("sum-completed");
+        if (sumCompleted) sumCompleted.textContent = `${newCompleted}/${total}`;
+
+        const sumProgressFill = document.getElementById("sum-progress-fill");
+        if (sumProgressFill) sumProgressFill.style.width = newProgress + "%";
+
+        const sumProgressPct = document.getElementById("sum-progress-pct");
+        if (sumProgressPct) sumProgressPct.textContent = `%${newProgress}`;
+      }
+    });
+  });
 }
 
 function _aiRoadmapRender(root, verificationResult, carbonResult) {
@@ -269,7 +461,7 @@ function _aiRoadmapRender(root, verificationResult, carbonResult) {
       <div class="flex flex-wrap items-end justify-between gap-3 mb-6">
         <div>
           <h1 class="text-[2.1rem] lg:text-[2.4rem] font-black text-leaf-900 tracking-tight leading-[1.05]">AI Yol Haritasi</h1>
-          <p class="mt-1.5 text-leaf-800/65 text-sm max-w-2xl">Dogrulama testinden cikan AI analizi, tier yukselme adimlari ve karbon ayak izi iyilestirme plani ayni panelde birlesir.</p>
+          <p class="mt-1.5 text-leaf-800/65 text-sm max-w-2xl">Dogrulama testinden cikan AI analizi ve tier yukselme adimlari ayni panelde birlesir.</p>
         </div>
         <div class="flex items-center gap-2"><span class="roadmap-pill"><span class="w-1.5 h-1.5 rounded-full bg-leaf-500"></span>${hasAi ? "AI analizi hazir" : "Analiz bekleniyor"}</span></div>
       </div>
@@ -277,15 +469,16 @@ function _aiRoadmapRender(root, verificationResult, carbonResult) {
         <div class="roadmap-stack">
           ${getAiRoadmapAnalysisMarkup(verificationResult)}
           ${getAiRoadmapStepsMarkup(verificationResult)}
-          ${getAiRoadmapCarbonMarkup(carbonResult)}
         </div>
         <div class="roadmap-stack">
-          ${getAiRoadmapPriorityActionsMarkup(verificationResult, carbonResult)}
+          ${getAiRoadmapPriorityActionsMarkup(verificationResult)}
           ${getAiRoadmapSummaryMarkup(verificationResult)}
         </div>
       </div>
     </section>
   `;
+  aiBindPriorityActionEvents(verificationResult);
+  aiBindStepDoneEvents(verificationResult);
 }
 
 async function renderAiRoadmap() {

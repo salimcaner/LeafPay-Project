@@ -978,6 +978,167 @@ def rozet_ai_analiz(veri: AIAnalizTalep, kullanici: dict = Depends(sadece_satici
     }
 
 
+def _dosyadan_metin_cikart(content: bytes, mime_type: str, filename: str) -> str:
+    ext = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
+    if ext in ("xlsx", "xls") or "spreadsheet" in mime_type or "excel" in mime_type:
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True, read_only=True)
+            lines = []
+            for sheet in wb.worksheets:
+                lines.append(f"--- Sayfa: {sheet.title} ---")
+                for row in sheet.iter_rows(values_only=True):
+                    vals = [str(v) if v is not None else "" for v in row]
+                    if any(v.strip() for v in vals):
+                        lines.append("\t".join(vals))
+            wb.close()
+            result = "\n".join(lines)
+            print(f"[karbon] Excel parse: {len(result)} karakter, {len(lines)} satir")
+            return result
+        except Exception as e:
+            print(f"[karbon] Excel parse hatasi: {e}")
+            return ""
+    if ext == "csv" or "csv" in mime_type:
+        try:
+            return content.decode("utf-8", errors="ignore")
+        except Exception:
+            return ""
+    if ext == "pdf" or "pdf" in mime_type:
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(content))
+            return "\n".join(p.extract_text() or "" for p in reader.pages)
+        except Exception:
+            return ""
+    try:
+        return content.decode("utf-8", errors="ignore")[:12000]
+    except Exception:
+        return ""
+
+
+@app.post("/satici/karbon/dosya-analiz")
+async def karbon_dosya_analiz(
+    dosya: UploadFile = File(...),
+    kullanici: dict = Depends(sadece_satici),
+):
+    content = await dosya.read()
+    if len(content) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Dosya 50MB'den büyük olamaz")
+
+    mime_type = dosya.content_type or "application/octet-stream"
+    filename = dosya.filename or ""
+    file_text = _dosyadan_metin_cikart(content, mime_type, filename)
+
+    if not file_text.strip():
+        raise HTTPException(status_code=422, detail="Dosya içeriği okunamadı veya boş")
+
+    # --- ADIM 1: Gemini sadece ham verileri çıkarsın ---
+    prompt_cikart = f"""Aşağıdaki dosya içeriğinden SADECE sayısal operasyonel verileri çıkar.
+
+Dosya içeriği:
+{file_text[:8000]}
+
+Bul ve döndür (aylık değilse aylığa çevir: günlük×30, yıllık÷12):
+- electricity: elektrik tüketimi (kWh/ay)
+- gas: doğalgaz tüketimi (m³/ay)
+- fuel: araç yakıtı/benzin (litre/ay)
+- cargo: kargo/lojistik mesafesi (km/ay)
+- plastic: plastik ambalaj (kg/ay)
+- cardboard: karton ambalaj (kg/ay)
+
+Bulamadığın değer için 0 yaz.
+SADECE JSON döndür, başka hiçbir şey yazma:
+{{"electricity": 0, "gas": 0, "fuel": 0, "cargo": 0, "plastic": 0, "cardboard": 0, "veri_kalitesi": "yuksek", "ozet": "2 cumle kisa ozet"}}"""
+
+    try:
+        yanit = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GEMINI_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": "google/gemini-2.0-flash-001",
+                "messages": [{"role": "user", "content": prompt_cikart}],
+                "response_format": {"type": "json_object"},
+                "max_tokens": 300,
+            },
+            timeout=60,
+        )
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=502, detail="AI servisi zaman aşımına uğradı, lütfen tekrar deneyin")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"AI servisine bağlanılamadı: {str(e)}")
+
+    if not yanit.ok:
+        print(f"[karbon] OpenRouter hatası {yanit.status_code}: {yanit.text[:300]}")
+        raise HTTPException(status_code=502, detail=f"AI servisi hata döndürdü ({yanit.status_code})")
+
+    try:
+        ham = json.loads(yanit.json()["choices"][0]["message"]["content"])
+        print(f"[karbon] Ham veriler: {ham}")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI yanıtı okunamadı: {str(e)}")
+
+    # --- ADIM 2: Python sabit faktörlerle hesaplasın ---
+    FAKTORLER = {
+        "electricity": {"faktor": 0.42,  "label": "Elektrik",     "color": "#1D9E75"},
+        "gas":         {"faktor": 2.0,   "label": "Dogalgaz",     "color": "#0F6A4F"},
+        "fuel":        {"faktor": 2.31,  "label": "Arac yakiti",  "color": "#085041"},
+        "cargo":       {"faktor": 0.12,  "label": "Kargo",        "color": "#4FB893"},
+        "plastic":     {"faktor": 6.0,   "label": "Plastik amb.", "color": "#EF9F27"},
+        "cardboard":   {"faktor": 1.1,   "label": "Karton amb.",  "color": "#F5B656"},
+    }
+    breakdown = []
+    toplam = 0.0
+    for key, meta in FAKTORLER.items():
+        miktar = float(ham.get(key) or 0)
+        co2 = round(miktar * meta["faktor"], 2)
+        toplam += co2
+        breakdown.append({"key": key, "label": meta["label"], "co2": co2, "color": meta["color"]})
+    breakdown.sort(key=lambda x: x["co2"], reverse=True)
+    toplam = round(toplam, 2)
+
+    sonuc = {
+        "toplam": toplam,
+        "breakdown": breakdown,
+        "ozet": str(ham.get("ozet", "")),
+        "veri_kalitesi": str(ham.get("veri_kalitesi", "orta")),
+        "uyari": None,
+    }
+    try:
+        supabase.table("karbon_analizleri").insert({
+            "satici_id": kullanici["id"],
+            "toplam": sonuc["toplam"],
+            "breakdown": sonuc["breakdown"],
+            "ozet": sonuc["ozet"],
+            "veri_kalitesi": sonuc["veri_kalitesi"],
+        }).execute()
+    except Exception:
+        pass
+    print(f"[karbon] Sonuc: toplam={toplam}, breakdown={breakdown}")
+    return sonuc
+
+
+@app.get("/satici/karbon/son-analiz")
+def karbon_son_analiz(kullanici: dict = Depends(sadece_satici)):
+    sonuc = supabase.table("karbon_analizleri") \
+        .select("toplam, breakdown, ozet, veri_kalitesi, olusturulma") \
+        .eq("satici_id", kullanici["id"]) \
+        .order("olusturulma", desc=True) \
+        .limit(1) \
+        .execute()
+    if not sonuc.data:
+        return {"analiz": None}
+    row = sonuc.data[0]
+    return {
+        "analiz": {
+            "total": float(row["toplam"]),
+            "breakdown": row["breakdown"],
+            "ozet": row["ozet"],
+            "veri_kalitesi": row["veri_kalitesi"],
+            "olusturulma": row["olusturulma"],
+        }
+    }
+
+
 @app.get("/satici/rozet/gecmis")
 def rozet_gecmis(kullanici: dict = Depends(sadece_satici)):
     sonuc = supabase.table("rozet_testleri") \

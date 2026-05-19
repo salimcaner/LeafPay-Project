@@ -81,6 +81,33 @@ body[data-layout="b"] .area-carb {
 .seg-btn.active { background:var(--accent); color:white; border-color:var(--accent); }
 .seg-btn:hover:not(.active) { background:#F1FAF6; }
 
+/* AI Yol Haritasi Dashboard Karti */
+.dash-road-card { display:flex; flex-direction:column; gap:16px; }
+
+.dash-road-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.dash-road-header-right { display:flex; align-items:center; gap:14px; flex-wrap:wrap; flex-shrink:0; }
+
+.dash-road-counter { display:flex; align-items:baseline; gap:3px; }
+.dash-road-counter-num { font-size:2rem; font-weight:900; color:#053A30; line-height:1; font-variant-numeric:tabular-nums; }
+.dash-road-counter-sep { font-size:1rem; font-weight:600; color:#A8C9BA; }
+.dash-road-counter-label { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#A8C9BA; margin-left:2px; }
+
+.dash-road-progress-wrap { display:flex; align-items:center; gap:12px; }
+.dash-road-progress-bar { flex:1; height:8px !important; }
+.dash-road-pct { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#168562; flex-shrink:0; min-width:32px; text-align:right; }
+
+.dash-road-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px; }
+
+.dash-road-step { border:1.5px solid #E8F5EE; border-radius:16px; padding:14px 14px 14px 12px; background:#FAFCFB; display:flex; gap:10px; align-items:flex-start; transition:border-color .2s, background .2s; }
+.dash-road-step.done { background:#EDF8F2; border-color:#A8D9C2; }
+
+.dash-road-badge { width:28px; height:28px; border-radius:8px; background:#E8F5EE; color:#168562; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .2s, color .2s; }
+.dash-road-step.done .dash-road-badge { background:#1D9E75; color:white; }
+.dash-road-badge svg { width:13px; height:13px; }
+
+.dash-road-step-title { font-size:12.5px; font-weight:600; color:#1E4D39; line-height:1.45; padding-top:3px; }
+.dash-road-step.done .dash-road-step-title { color:#5A9E7A; }
+
 .bar-row { display:grid; grid-template-columns:110px 1fr 64px; align-items:center; gap:10px; font-size:12px; }
 .bar-name { color:#0F6A4F; font-weight:600; }
 .bar-track { height:8px; background:#F1FAF6; border-radius:999px; overflow:hidden; }
@@ -89,6 +116,197 @@ body[data-layout="b"] .area-carb {
 
 .dashboard-accent-button { background:var(--accent); }
 .dashboard-accent-button:hover { background:var(--accent-dark); }
+
+/* Carbon Full-Page Grid */
+.carb-page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "left top"
+    "left bottom";
+  gap: 18px;
+  align-items: stretch;
+}
+.carb-page-left  { grid-area: left; display: flex; flex-direction: column; min-height: 340px; }
+.carb-page-top   { grid-area: top; }
+.carb-page-bottom { grid-area: bottom; display: flex; flex-direction: column; }
+.carb-page-bottom .space-y-2 { flex: 1; }
+
+.carb-page-left .area-carb { flex: 1; }
+
+@media (max-width: 900px) {
+  .carb-page-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas: "left" "top" "bottom";
+  }
+}
+
+/* Carbon Top Category Card */
+.carb-top-inner { display: flex; flex-direction: column; gap: 12px; }
+.carb-top-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.carb-top-name { font-size: 1.6rem; font-weight: 900; color: #053A30; line-height: 1.1; margin-top: 3px; }
+.carb-top-pct { font-size: 2.4rem; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.carb-top-bar-wrap { height: 8px; background: #E1F5EE; border-radius: 999px; overflow: hidden; }
+.carb-top-bar-fill { height: 100%; border-radius: 999px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+.carb-top-tip { font-size: 12.5px; line-height: 1.6; color: #1E4D39; background: #F8FCFA; border: 1px solid #D6F0E6; border-radius: 12px; padding: 10px 13px; }
+
+/* Carbon Upload Card */
+.carb-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2px dashed #BFE7D6;
+  border-radius: 18px;
+  padding: 32px 20px;
+  background: #F8FCFA;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  text-align: center;
+}
+.carb-drop:hover { border-color: #1D9E75; background: #EFF9F4; }
+.carb-drop.dragover { border-color: #1D9E75; background: #EDF8F2; }
+
+.carb-drop-icon { color: #8DD3B7; margin-bottom: 2px; }
+.carb-drop-icon svg { width: 36px; height: 36px; display: block; }
+
+.carb-drop-text { font-size: 14px; font-weight: 600; color: #1E4D39; }
+.carb-drop-hint { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; color: #6AAF8C; }
+
+.carb-file-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #EDF8F2;
+  border: 1px solid #A8D9C2;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E4D39;
+  margin-top: 10px;
+}
+
+.carb-upload-err {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #B54B4B;
+  background: #FDF2F2;
+  border: 1px solid #F1C0C0;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.carb-analyze-btn, .carb-reanalyze-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 10px 20px;
+  background: #1D9E75;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  border: 0;
+  cursor: pointer;
+  transition: background .15s;
+  margin-top: 14px;
+}
+.carb-analyze-btn:hover, .carb-reanalyze-btn:hover { background: #168562; }
+.carb-analyze-btn:disabled { opacity: .55; cursor: default; }
+
+.carb-reanalyze-btn {
+  background: transparent;
+  color: #168562;
+  border: 1.5px solid #BFE7D6;
+  margin-top: 12px;
+  font-size: 12px;
+  padding: 7px 16px;
+}
+.carb-reanalyze-btn:hover { background: #F1FAF6; }
+
+.carb-analyzing-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.carb-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #E1F5EE;
+  border-top-color: #1D9E75;
+  border-radius: 50%;
+  animation: carb-spin .8s linear infinite;
+}
+@keyframes carb-spin { to { transform: rotate(360deg); } }
+
+.carb-analyzing-text {
+  font-size: 13px;
+  color: #0F6A4F;
+  font-weight: 600;
+}
+
+.carb-summary {
+  text-align: center;
+  padding: 12px 0 8px;
+}
+.carb-total-num {
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: #053A30;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.carb-total-unit {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: #6AAF8C;
+  margin-top: 4px;
+}
+.carb-equiv {
+  font-size: 12px;
+  color: #1E4D39;
+  margin-top: 6px;
+}
+.carb-vs-avg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.carb-vs-avg.below-avg { background: #EDF8F2; color: #168562; }
+.carb-vs-avg.above-avg { background: #FBF0DC; color: #C77A0F; }
+
+.carb-bench {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: #A8C9BA;
+  margin-top: 6px;
+}
+
+.carb-ozet {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #1E4D39;
+  background: #F8FCFA;
+  border: 1px solid #D6F0E6;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
 
 @media (max-width: 1023px) {
   .dashboard-wrap { padding:1.25rem 1rem 2rem; }

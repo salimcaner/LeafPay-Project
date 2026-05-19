@@ -148,34 +148,29 @@ function getDashboardAiRoadmapData() {
   const result = typeof getAiRoadmapVerificationResult === "function"
     ? getAiRoadmapVerificationResult()
     : getVerificationBadgeData();
-  if (!result) return null;
+  if (!result || !result.ai || !Array.isArray(result.ai.yol_haritasi) || !result.ai.yol_haritasi.length) return null;
 
-  const templates = typeof ROADMAP_TEMPLATES !== "undefined" ? ROADMAP_TEMPLATES : null;
-  const template = (templates && templates[result.tier]) || (templates && templates[1]);
-  if (!template || !Array.isArray(template.steps) || !template.steps.length) return null;
+  const rozetId = result.badgeId || result.rozetId || "";
+  let userDone = [];
+  if (rozetId) {
+    try { userDone = JSON.parse(localStorage.getItem(`leafpay_steps_done_${rozetId}`) || "[]"); } catch (e) { /* ignore */ }
+  }
 
-  const currentIndex = template.steps.findIndex((step) => step.status === "devam");
-  const currentStep = currentIndex >= 0 ? currentIndex + 1 : Math.min(template.steps.filter((step) => step.status === "tamamlandi").length + 1, template.steps.length);
-  const nextStep = template.steps.find((step) => step.status !== "tamamlandi");
   const isMaxTier = Number(result.tier) >= 3;
+  const targetTier = isMaxTier ? 3 : Number(result.tier) + 1;
+  const steps = result.ai.yol_haritasi.map(function (s, i) {
+    return {
+      title: s.baslik || "",
+      done: s.durum === "tamamlandi" || userDone.includes(i),
+    };
+  });
+  const doneCount = steps.filter(function (s) { return s.done; }).length;
 
   return {
-    stepTitle: isMaxTier
-      ? "Maksimum tier seviyesindesin"
-      : `Tier ${result.tier}'den Tier ${template.targetTier}'ye gecis planin`,
-    currentStep,
-    totalSteps: template.steps.length,
-    progress: template.progress,
-    steps: template.steps.map((step) => ({
-      title: step.title,
-      detail: step.status === "devam" ? step.cta : `Etki ${step.impact} puan`,
-      done: step.status === "tamamlandi",
-      current: step.status === "devam",
-    })),
-    nextActionTitle: nextStep ? nextStep.title : "Mevcut seviyeni koru",
-    nextActionText: nextStep
-      ? nextStep.description
-      : "Belge yenileme ve operasyon takibini duzenli surdur.",
+    stepTitle: isMaxTier ? "Maksimum tier seviyesindesin" : `Tier ${result.tier}'den Tier ${targetTier}'ye gecis planin`,
+    doneCount,
+    totalSteps: steps.length,
+    steps,
   };
 }
 
@@ -607,6 +602,41 @@ function getTrendProductFromLogs() {
   };
 }
 
+function getAiRoadmapCardMarkup(roadmapData) {
+  var pct = roadmapData.totalSteps > 0 ? Math.round((roadmapData.doneCount / roadmapData.totalSteps) * 100) : 0;
+  var stepsHtml = roadmapData.steps.map(function (step, i) {
+    var badgeInner = step.done
+      ? '<svg viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10.5 11.5,3.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      : '<span>' + (i + 1) + '</span>';
+    return '<div class="dash-road-step' + (step.done ? ' done' : '') + '">'
+      + '<div class="dash-road-badge">' + badgeInner + '</div>'
+      + '<div class="dash-road-step-title">' + step.title + '</div>'
+      + '</div>';
+  }).join('');
+
+  return '<div class="area-road card dash-road-card">'
+    + '<div class="dash-road-header">'
+      + '<div>'
+        + '<div class="eyebrow">AI Yol Haritasi · AI Olusturdu</div>'
+        + '<div class="font-bold text-leaf-900 mt-1 text-xl tracking-tight">' + roadmapData.stepTitle + '</div>'
+      + '</div>'
+      + '<div class="dash-road-header-right">'
+        + '<div class="dash-road-counter">'
+          + '<span class="dash-road-counter-num">' + roadmapData.doneCount + '</span>'
+          + '<span class="dash-road-counter-sep">/ ' + roadmapData.totalSteps + '</span>'
+          + '<span class="dash-road-counter-label">adim</span>'
+        + '</div>'
+        + '<button class="text-xs font-semibold px-4 py-2 rounded-full text-white dashboard-accent-button" data-open-ai-roadmap>Tum haritayi goster →</button>'
+      + '</div>'
+    + '</div>'
+    + '<div class="dash-road-progress-wrap">'
+      + '<div class="progress-bar dash-road-progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>'
+      + '<span class="dash-road-pct">%' + pct + '</span>'
+    + '</div>'
+    + '<div class="dash-road-grid">' + stepsHtml + '</div>'
+    + '</div>';
+}
+
 function getDashboardMarkup() {
   const summary = DASHBOARD_SUMMARY;
   summary.badge = buildBadgeSection(summary);
@@ -712,86 +742,9 @@ function getDashboardMarkup() {
           </div>
         </div>
 
-        ${!roadmapData ? getEmptyAiRoadmapCardMarkup() : `
-        <div class="area-road card">
-          <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-            <div>
-              <div class="eyebrow">AI Yol Haritasi</div>
-              <div class="font-bold text-leaf-900 mt-1 text-lg">${roadmapData.stepTitle}</div>
-            </div>
-            <span class="pill-mono">Adim ${roadmapData.currentStep}/${roadmapData.totalSteps}</span>
-          </div>
+        ${!roadmapData ? getEmptyAiRoadmapCardMarkup() : getAiRoadmapCardMarkup(roadmapData)}
 
-          <div class="flex items-center mb-5" id="roadmap-steps">
-            ${getRoadmapStepperMarkup(roadmapData)}
-          </div>
-
-          <div class="grid grid-cols-2 lg:grid-cols-5 gap-2 text-[11px]">
-            ${roadmapData.steps.map(getRoadmapStepMarkup).join("")}
-          </div>
-
-          <div class="mt-5 flex items-center justify-between bg-leaf-50 border border-leaf-200 rounded-2xl px-4 py-3 gap-3 flex-wrap">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-200 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
-              </div>
-              <div>
-                <div class="text-sm font-bold text-leaf-900">${roadmapData.nextActionTitle}</div>
-                <div class="text-xs text-leaf-800/60 mt-0.5">${roadmapData.nextActionText}</div>
-              </div>
-            </div>
-            <button class="text-xs font-semibold px-4 py-2 rounded-full text-white dashboard-accent-button" data-open-ai-roadmap>Yol haritasini ac →</button>
-          </div>
-        </div>
-
-        `}
-
-        <div class="area-carb card relative overflow-hidden">
-          <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-leaf-100/60 blur-3xl pointer-events-none"></div>
-          <div class="relative">
-            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <div>
-                <div class="eyebrow">Karbon Ayak Izi · Hesapla</div>
-                <div class="font-bold text-leaf-900 mt-1 text-lg">Aylik operasyonel emisyonun</div>
-              </div>
-              <div class="flex gap-1.5">
-                <button class="seg-btn ${DASHBOARD_STATE.activeMonth === "current" ? "active" : ""}" data-month-tab="current">Bu Ay</button>
-                <button class="seg-btn ${DASHBOARD_STATE.activeMonth === "last" ? "active" : ""}" data-month-tab="last">Onceki</button>
-              </div>
-            </div>
-
-            <p class="text-xs text-leaf-800/55 mb-5 max-w-xl">Bilgilerini gir, aninda <b class="text-leaf-700">kg CO2e/ay</b> sonucunu gorup Tier seviyene etkisini ogren.</p>
-
-            <div class="grid sm:grid-cols-2 gap-3" id="co2-form">
-              ${getCO2FieldMarkup("electricity", "Elektrik tuketimi", "kWh/ay")}
-              ${getCO2FieldMarkup("gas", "Dogalgaz tuketimi", "m3/ay")}
-              ${getCO2FieldMarkup("fuel", "Arac yakiti (benzin)", "litre/ay")}
-              ${getCO2FieldMarkup("cargo", "Kargo mesafesi", "km/ay")}
-              ${getCO2FieldMarkup("plastic", "Plastik ambalaj", "kg/ay")}
-              ${getCO2FieldMarkup("cardboard", "Karton ambalaj", "kg/ay")}
-            </div>
-
-            <div class="mt-5 rounded-2xl border border-leaf-200 bg-gradient-to-br from-leaf-50 to-white p-5">
-              <div class="flex items-end justify-between flex-wrap gap-3 mb-4">
-                <div>
-                  <div class="eyebrow">Toplam · ${currentMonthLabel}</div>
-                  <div class="mt-1 flex items-baseline gap-2">
-                    <span class="metric-number text-[2.6rem] leading-none tabular-nums" id="co2-total">—</span>
-                    <span class="text-sm text-leaf-800/60 font-mono">kg CO2e</span>
-                  </div>
-                  <div class="text-xs text-leaf-800/55 mt-1.5" id="co2-equiv">— agac esdeger karsiligi</div>
-                </div>
-                <div class="text-right">
-                  <div class="eyebrow text-amber-600">Sektor Ortalamasi</div>
-                  <div class="mt-1 font-mono text-leaf-900 text-lg tabular-nums" id="co2-vs-avg">—</div>
-                  <div class="text-xs text-leaf-800/55 mt-0.5">5.200 kg CO2e benchmark</div>
-                </div>
-              </div>
-
-              <div class="space-y-2" id="co2-breakdown"></div>
-            </div>
-          </div>
-        </div>
+        ${getCarbonUploadCardMarkup()}
 
         ${getTrendProductMarkup(topProduct)}
       </div>
@@ -799,18 +752,64 @@ function getDashboardMarkup() {
   `;
 }
 
-function simplifyDashboardCarbonCard() {
-  const card = document.querySelector(".area-carb");
-  if (!card) return;
+function getCarbonUploadCardMarkup() {
+  const stored = getStoredCarbonResult();
+  var stateAttr = stored ? 'data-carb-state="result"' : 'data-carb-state="upload"';
+  var resultStyle = stored ? '' : 'style="display:none"';
+  var uploadStyle = stored ? 'style="display:none"' : '';
 
-  const monthTabs = card.querySelector(".flex.gap-1\\.5");
-  if (monthTabs) monthTabs.remove();
+  var storedHtml = '';
+  if (stored) {
+    var total = stored.total || 0;
+    var trees = Math.round(total / 1.75);
+    storedHtml = '<div class="carb-summary">'
+      + '<div class="eyebrow">Toplam Emisyon</div>'
+      + '<div class="carb-total-num">' + fmtNum(total) + '<span class="carb-total-unit">kg CO2e/ay</span></div>'
+      + '<div class="carb-equiv">&#8776; ' + fmtNum(trees) + ' olgun agacin aylik emilimi</div>'
+      + '</div>';
+  }
 
-  const helperText = card.querySelector("p.text-xs.text-leaf-800\\/55.mb-5.max-w-xl");
-  if (helperText) helperText.remove();
+  return '<div class="area-carb card relative overflow-hidden" ' + stateAttr + '>'
+    + '<div class="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-leaf-100/60 blur-3xl pointer-events-none"></div>'
+    + '<div class="relative">'
 
-  const form = card.querySelector("#co2-form");
-  if (form) form.remove();
+    // Header
+    + '<div class="flex items-start justify-between mb-5 flex-wrap gap-3">'
+    + '<div><div class="eyebrow">Karbon Ayak Izi · AI Analiz</div>'
+    + '<div class="font-bold text-leaf-900 mt-1 text-lg">Operasyonel emisyon raporu</div></div>'
+    + (stored ? '<button class="carb-reanalyze-btn" id="carb-reanalyze">Yeniden yukle</button>' : '')
+    + '</div>'
+
+    // Upload state
+    + '<div id="carb-upload-zone" ' + uploadStyle + '>'
+    + '<p class="text-xs text-leaf-800/55 mb-4">Excel, CSV veya PDF formatında operasyonel veri dosyanızı yükleyin. Gemini dosyayı analiz ederek karbon ayak izinizi hesaplar.</p>'
+    + '<label class="carb-drop" id="carb-drop-label">'
+    + '<input type="file" id="carb-file-input" accept=".xlsx,.xls,.csv,.pdf,.txt" style="display:none">'
+    + '<div class="carb-drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="16 12 12 16 8 12"/><line x1="12" y1="3" x2="12" y2="16"/></svg></div>'
+    + '<div class="carb-drop-text">Dosyayı buraya bırakın veya tıklayın</div>'
+    + '<div class="carb-drop-hint">Excel · CSV · PDF &nbsp;·&nbsp; Maks. 50 MB</div>'
+    + '</label>'
+    + '<div id="carb-file-info" class="carb-file-info" style="display:none"></div>'
+    + '<div id="carb-upload-err" class="carb-upload-err" style="display:none"></div>'
+    + '<button class="carb-analyze-btn" id="carb-analyze-btn" disabled>AI ile Analiz Et</button>'
+    + '</div>'
+
+    // Analyzing state
+    + '<div id="carb-analyzing" style="display:none">'
+    + '<div class="carb-analyzing-wrap">'
+    + '<div class="carb-spinner"></div>'
+    + '<div class="carb-analyzing-text" id="carb-analyzing-text">Dosya okunuyor...</div>'
+    + '</div>'
+    + '</div>'
+
+    // Result state
+    + '<div id="carb-result" ' + resultStyle + '>'
+    + '<div id="co2-summary">' + storedHtml + '</div>'
+    + '<div class="space-y-2 mt-4" id="co2-breakdown"></div>'
+    + (stored && stored.ozet ? '<div class="carb-ozet">' + stored.ozet + '</div>' : '<div class="carb-ozet" id="carb-ozet" style="display:none"></div>')
+    + '</div>'
+
+    + '</div></div>';
 }
 
 function renderCarbonCalculator() {
@@ -822,17 +821,28 @@ function renderCarbonCalculator() {
     <section class="dashboard-wrap">
       <div class="greeting flex flex-wrap items-end justify-between gap-3 mb-6">
         <div>
-          <h1 class="text-[2.1rem] lg:text-[2.4rem] font-black text-leaf-900 tracking-tight leading-[1.05]">Karbon Ayak Izi Hesaplama</h1>
-          <p class="mt-1.5 text-leaf-800/65 text-sm max-w-2xl">Elektrik, lojistik ve ambalaj verilerini girip aylik operasyonel emisyonunu tek ekranda hesapla.</p>
+          <div class="eyebrow mb-1">Karbon Ayak Izi · AI Analizi</div>
+          <h1 class="text-[2.1rem] lg:text-[2.4rem] font-black text-leaf-900 tracking-tight leading-[1.05]">Karbon Ayak Izi</h1>
+          <p class="mt-1.5 text-leaf-800/65 text-sm max-w-2xl">Operasyonel veri dosyanı yükle, Gemini analiz edip karbon ayak izini hesaplasın.</p>
         </div>
       </div>
 
-      ${getCarbonCalculatorCardMarkup()}
+      <div class="carb-page-grid">
+        <div class="carb-page-left">
+          ${getCarbonUploadCardMarkup()}
+        </div>
+        <div class="carb-page-top card" id="carb-top-category" style="${getStoredCarbonResult() ? '' : 'display:none'}"></div>
+        <div class="carb-page-bottom card" id="carb-full-breakdown" style="${getStoredCarbonResult() ? '' : 'display:none'}">
+          <div class="eyebrow mb-3">Kategori Detayi</div>
+          <div class="space-y-2" id="co2-breakdown-full"></div>
+          <div id="carb-ozet-full" class="carb-ozet" style="display:none"></div>
+        </div>
+      </div>
     </section>
   `;
 
-  bindDashboardEvents();
-  renderCO2Result();
+  bindCarbonUploadEvents();
+  _renderCarbonFullBreakdown();
 }
 
 function getCO2FieldMarkup(key, label, unit) {
@@ -1066,12 +1076,272 @@ function bindDashboardEvents() {
     });
   });
 
-  document.querySelectorAll("[data-co2-input]").forEach((input) => {
-    input.addEventListener("input", () => {
-      DASHBOARD_STATE.monthInputs[DASHBOARD_STATE.activeMonth][input.dataset.co2Input] = Number(input.value || 0);
-      renderCO2Result();
+  bindCarbonUploadEvents();
+}
+
+function bindCarbonUploadEvents() {
+  var fileInput = document.getElementById("carb-file-input");
+  var dropLabel = document.getElementById("carb-drop-label");
+  var fileInfo = document.getElementById("carb-file-info");
+  var uploadErr = document.getElementById("carb-upload-err");
+  var analyzeBtn = document.getElementById("carb-analyze-btn");
+  var reanalyzeBtn = document.getElementById("carb-reanalyze");
+
+  var selectedFile = null;
+  var MSGS = ["Dosya okunuyor...", "Veriler isleniyor...", "Emisyonlar hesaplaniyor...", "Sonuclar hazirlaniyor..."];
+  var msgIdx = 0;
+
+  function setFile(file) {
+    if (!file) return;
+    var maxMB = 50;
+    var allowed = ["xlsx", "xls", "csv", "pdf", "txt"];
+    var ext = file.name.toLowerCase().split(".").pop();
+    if (!allowed.includes(ext)) {
+      showErr("Desteklenmeyen dosya türü. Excel, CSV veya PDF yükleyin.");
+      return;
+    }
+    if (file.size > maxMB * 1024 * 1024) {
+      showErr("Dosya " + maxMB + "MB sınırını aşıyor.");
+      return;
+    }
+    selectedFile = file;
+    uploadErr.style.display = "none";
+    fileInfo.style.display = "flex";
+    fileInfo.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+      + '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + file.name + '</span>'
+      + '<span style="flex-shrink:0;color:#A8C9BA">' + (file.size / 1024 / 1024).toFixed(1) + ' MB</span>'
+      + '<button id="carb-remove-file" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#A8C9BA;font-size:16px;padding:0 0 0 4px">&#x2715;</button>';
+    document.getElementById("carb-remove-file").onclick = function () {
+      selectedFile = null;
+      fileInfo.style.display = "none";
+      fileInfo.innerHTML = "";
+      analyzeBtn.disabled = true;
+      if (fileInput) fileInput.value = "";
+    };
+    analyzeBtn.disabled = false;
+  }
+
+  function showErr(msg) {
+    uploadErr.textContent = msg;
+    uploadErr.style.display = "block";
+  }
+
+  function setCarbState(state) {
+    var card = document.querySelector(".area-carb");
+    if (card) card.setAttribute("data-carb-state", state);
+    var zones = { upload: document.getElementById("carb-upload-zone"), analyzing: document.getElementById("carb-analyzing"), result: document.getElementById("carb-result") };
+    Object.entries(zones).forEach(function (e) { if (e[1]) e[1].style.display = e[0] === state ? "" : "none"; });
+  }
+
+  if (fileInput) fileInput.addEventListener("change", function () { if (this.files[0]) setFile(this.files[0]); });
+
+  if (dropLabel) {
+    dropLabel.addEventListener("dragover", function (e) { e.preventDefault(); this.classList.add("drag-over"); });
+    dropLabel.addEventListener("dragleave", function () { this.classList.remove("drag-over"); });
+    dropLabel.addEventListener("drop", function (e) {
+      e.preventDefault(); this.classList.remove("drag-over");
+      if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
     });
+  }
+
+  if (analyzeBtn) analyzeBtn.addEventListener("click", async function () {
+    if (!selectedFile) return;
+    setCarbState("analyzing");
+    var msgEl = document.getElementById("carb-analyzing-text");
+    msgIdx = 0;
+    if (msgEl) msgEl.textContent = MSGS[0];
+    var msgTimer = setInterval(function () {
+      msgIdx = (msgIdx + 1) % MSGS.length;
+      if (msgEl) msgEl.textContent = MSGS[msgIdx];
+    }, 2200);
+
+    try {
+      var token = (typeof getAuthState === "function") ? (getAuthState().token || "") : "";
+      var base = (typeof getApiBaseUrl === "function") ? getApiBaseUrl() : "";
+      var form = new FormData();
+      form.append("dosya", selectedFile);
+      var res = await fetch(base + "/satici/karbon/dosya-analiz", { method: "POST", headers: { "Authorization": "Bearer " + token }, body: form });
+      clearInterval(msgTimer);
+      if (!res.ok) { var errData = await res.json().catch(function(){return{};}); throw new Error(errData.detail || "Sunucu hatası"); }
+      var data = await res.json();
+
+      var result = { total: data.toplam, breakdown: data.breakdown, ozet: data.ozet, month: "current", capturedAt: new Date().toISOString() };
+      try { localStorage.setItem(SELLER_CARBON_RESULT_KEY, JSON.stringify(result)); } catch (e) { /* ignore */ }
+
+      setCarbState("result");
+      renderCO2ResultFromData(result);
+    } catch (err) {
+      clearInterval(msgTimer);
+      setCarbState("upload");
+      showErr(err.message || "Analiz başarısız. Lütfen tekrar deneyin.");
+    }
   });
+
+  if (reanalyzeBtn) reanalyzeBtn.addEventListener("click", function () {
+    try { localStorage.removeItem(SELLER_CARBON_RESULT_KEY); } catch (e) { /* ignore */ }
+    setCarbState("upload");
+  });
+
+  // Load: önce localStorage cache, yoksa DB'den çek
+  var cached = getStoredCarbonResult();
+  if (cached) {
+    renderCO2ResultFromData(cached);
+  } else {
+    _fetchAndRenderCarbonResult();
+  }
+}
+
+async function _fetchAndRenderCarbonResult() {
+  try {
+    var token = (typeof getAuthState === "function") ? (getAuthState().token || "") : "";
+    if (!token) return;
+    var base = (typeof getApiBaseUrl === "function") ? getApiBaseUrl() : "";
+    var res = await fetch(base + "/satici/karbon/son-analiz", { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) return;
+    var data = await res.json();
+    if (!data.analiz) return;
+    var result = {
+      total: data.analiz.total,
+      breakdown: data.analiz.breakdown,
+      ozet: data.analiz.ozet,
+      capturedAt: data.analiz.olusturulma,
+    };
+    try { localStorage.setItem(SELLER_CARBON_RESULT_KEY, JSON.stringify(result)); } catch (e) { /* ignore */ }
+
+    // Kartı yeniden çiz (reanalyze butonu olmadan açılmış olabilir)
+    var card = document.querySelector(".area-carb");
+    if (card) {
+      var reBtn = document.getElementById("carb-reanalyze");
+      if (!reBtn) {
+        var header = card.querySelector(".flex.items-start");
+        if (header) header.insertAdjacentHTML("beforeend", '<button class="carb-reanalyze-btn" id="carb-reanalyze">Yeniden yukle</button>');
+        var newReBtn = document.getElementById("carb-reanalyze");
+        if (newReBtn) newReBtn.addEventListener("click", function () {
+          try { localStorage.removeItem(SELLER_CARBON_RESULT_KEY); } catch (e) { /* ignore */ }
+          var c = document.querySelector(".area-carb");
+          if (c) c.setAttribute("data-carb-state", "upload");
+          var zones = { upload: document.getElementById("carb-upload-zone"), analyzing: document.getElementById("carb-analyzing"), result: document.getElementById("carb-result") };
+          Object.entries(zones).forEach(function (e) { if (e[1]) e[1].style.display = e[0] === "upload" ? "" : "none"; });
+        });
+      }
+      var resultEl = document.getElementById("carb-result");
+      var uploadEl = document.getElementById("carb-upload-zone");
+      if (resultEl) resultEl.style.display = "";
+      if (uploadEl) uploadEl.style.display = "none";
+      card.setAttribute("data-carb-state", "result");
+    }
+    renderCO2ResultFromData(result);
+  } catch (e) { /* sessizce geç */ }
+}
+
+function renderCO2ResultFromData(result) {
+  var summaryEl = document.getElementById("co2-summary");
+  var breakdownEl = document.getElementById("co2-breakdown");
+  var ozetEl = document.getElementById("carb-ozet");
+  var hasFullPanel = !!document.getElementById("co2-breakdown-full");
+
+  if (summaryEl) {
+    // total yoksa ya da 0'sa breakdown'dan hesapla
+    var breakdown0 = result.breakdown || [];
+    var total = result.total && result.total > 0
+      ? result.total
+      : breakdown0.reduce(function (s, i) { return s + (parseFloat(i.co2) || 0); }, 0);
+    var trees = Math.round(total / 1.75);
+    summaryEl.innerHTML = '<div class="carb-summary">'
+      + '<div class="eyebrow">Toplam Emisyon</div>'
+      + '<div class="carb-total-num">' + fmtNum(total) + '<span class="carb-total-unit">kg CO2e/ay</span></div>'
+      + '<div class="carb-equiv">&#8776; ' + fmtNum(trees) + ' olgun agacin aylik emilimi</div>'
+      + '</div>';
+    // total'i düzelterek result'ı güncelle (breakdown percentages için)
+    result = Object.assign({}, result, { total: total });
+  }
+
+  // Full-page view: breakdown goes in the right panel; dashboard: inline inside card
+  if (!hasFullPanel && breakdownEl) {
+    var breakdown = result.breakdown || [];
+    var inlineTotal = result.total && result.total > 0
+      ? result.total
+      : breakdown.reduce(function (s, i) { return s + (parseFloat(i.co2) || 0); }, 0);
+    var maxVal = Math.max.apply(null, breakdown.map(function (i) { return parseFloat(i.co2) || 0; }).concat([1]));
+    breakdownEl.innerHTML = breakdown.map(function (item) {
+      var co2 = parseFloat(item.co2) || 0;
+      var w = (co2 / maxVal) * 100;
+      var share = inlineTotal ? (co2 / inlineTotal * 100).toFixed(1) : 0;
+      return '<div class="bar-row"><span class="bar-name">' + item.label + '</span>'
+        + '<div class="bar-track"><div class="bar-fill" style="width:' + w + '%;background:' + (item.color || "#1D9E75") + '"></div></div>'
+        + '<span class="bar-value">' + fmtNum(co2) + ' <span style="opacity:.4">· %' + share + '</span></span></div>';
+    }).join("");
+    if (ozetEl && result.ozet) { ozetEl.textContent = result.ozet; ozetEl.style.display = ""; }
+  }
+
+  _renderCarbonFullBreakdown(result);
+}
+
+function _renderCarbonFullBreakdown(result) {
+  var panel = document.getElementById("carb-full-breakdown");
+  var breakdownEl = document.getElementById("co2-breakdown-full");
+  var ozetEl = document.getElementById("carb-ozet-full");
+  if (!panel || !breakdownEl) return;
+
+  var topPanel = document.getElementById("carb-top-category");
+  var data = result || getStoredCarbonResult();
+  if (!data) {
+    panel.style.display = "none";
+    if (topPanel) topPanel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "";
+  if (topPanel) topPanel.style.display = "";
+  var breakdown = data.breakdown || [];
+  var realTotal = data.total && data.total > 0
+    ? data.total
+    : breakdown.reduce(function (s, i) { return s + (parseFloat(i.co2) || 0); }, 0);
+  var maxVal = Math.max.apply(null, breakdown.map(function (i) { return parseFloat(i.co2) || 0; }).concat([1]));
+  breakdownEl.innerHTML = breakdown.map(function (item) {
+    var co2 = parseFloat(item.co2) || 0;
+    var w = (co2 / maxVal) * 100;
+    var share = realTotal ? (co2 / realTotal * 100).toFixed(1) : 0;
+    return '<div class="bar-row"><span class="bar-name">' + item.label + '</span>'
+      + '<div class="bar-track"><div class="bar-fill" style="width:' + w + '%;background:' + (item.color || "#1D9E75") + '"></div></div>'
+      + '<span class="bar-value">' + fmtNum(item.co2) + ' <span style="opacity:.4">· %' + share + '</span></span></div>';
+  }).join("");
+
+  if (ozetEl && data.ozet) { ozetEl.textContent = data.ozet; ozetEl.style.display = ""; }
+
+  var topEl = document.getElementById("carb-top-category");
+  if (topEl) topEl.innerHTML = _getTopCategoryMarkup(data, realTotal);
+}
+
+function _getTopCategoryMarkup(data, realTotal) {
+  var breakdown = data.breakdown || [];
+  if (!breakdown.length) return "";
+  var top = breakdown.reduce(function (a, b) {
+    return (parseFloat(b.co2) || 0) > (parseFloat(a.co2) || 0) ? b : a;
+  }, breakdown[0]);
+  var co2 = parseFloat(top.co2) || 0;
+  var total = realTotal && realTotal > 0
+    ? realTotal
+    : breakdown.reduce(function (s, i) { return s + (parseFloat(i.co2) || 0); }, 0);
+  var pct = total ? (co2 / total * 100).toFixed(1) : 0;
+  var TIPS = {
+    electricity: "LED aydınlatmaya geçin, enerji tasarruflu ekipman kullanın ve güneş enerjisi değerlendirin.",
+    gas: "Isı yalıtımını güçlendirin ve akıllı termostat sistemi kurun.",
+    fuel: "Elektrikli araç filosuna geçişi planlayın veya rota optimizasyonu yapın.",
+    cargo: "Toplu gönderi ve yerel depo seçeneklerini değerlendirin.",
+    plastic: "Biyobozunur veya geri dönüştürülmüş ambalaj alternatiflerine geçin.",
+    cardboard: "FSC sertifikalı karton kullanın ve paket boyutunu optimize edin.",
+  };
+  var tip = TIPS[top.key] || "Bu kategoriyi azaltmaya yönelik bir aksiyon planı oluşturun.";
+  return '<div class="carb-top-inner">'
+    + '<div class="carb-top-header">'
+    + '<div><div class="eyebrow" style="color:#C77A0F">En Buyuk Etki</div>'
+    + '<div class="carb-top-name">' + (top.label || top.key) + '</div></div>'
+    + '<div class="carb-top-pct" style="color:' + (top.color || "#1D9E75") + '">%' + pct + '</div>'
+    + '</div>'
+    + '<div class="carb-top-bar-wrap"><div class="carb-top-bar-fill" style="width:' + pct + '%;background:' + (top.color || "#1D9E75") + '"></div></div>'
+    + '<div class="carb-top-tip">' + tip + '</div>'
+    + '</div>';
 }
 
 async function renderDashboard() {
@@ -1092,6 +1362,4 @@ async function renderDashboard() {
   DASHBOARD_STATE.greeting = await fetchDashboardGreetingData();
   dashboardRoot.innerHTML = getDashboardMarkup();
   bindDashboardEvents();
-  simplifyDashboardCarbonCard();
-  renderCO2Result();
 }
