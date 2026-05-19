@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -6,6 +7,7 @@ load_dotenv()
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from database import supabase
 from routers import auth, rozet, karbon
@@ -24,11 +26,6 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(rozet.router)
 app.include_router(karbon.router)
-
-
-@app.get("/")
-def read_root():
-    return {"LeafPay": "Welcome to LeafPay"}
 
 
 @app.post("/webhook/trendyol/{webhook_id}")
@@ -71,3 +68,8 @@ def webhook_al(
         raise HTTPException(status_code=500, detail=f"Insert hatası: {str(e)}")
 
     return {"status": "ok", "vera_points_awarded": payload.vera_points}
+
+
+_frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend")
+if os.path.isdir(_frontend_dir):
+    app.mount("/", StaticFiles(directory=_frontend_dir, html=True), name="frontend")

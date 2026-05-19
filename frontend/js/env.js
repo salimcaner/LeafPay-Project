@@ -1,3 +1,3 @@
 window.LEAFPAY_CONFIG = {
-  API_BASE_URL: "https://leafpay-project.onrender.com",
+  API_BASE_URL: window.location.origin,
 };
