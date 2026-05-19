@@ -171,6 +171,9 @@ function getDashboardAiRoadmapData() {
     doneCount,
     totalSteps: steps.length,
     steps,
+    ozet: (result.ai && result.ai.ozet) || "",
+    tier: Number(result.tier) || 0,
+    skor: Number(result.score || result.skor) || 0,
   };
 }
 
@@ -250,10 +253,11 @@ async function fetchDashboardGreetingData() {
     const { token } = typeof getAuthState === "function" ? getAuthState() : { token: "" };
     if (!token || typeof apiRequest !== "function") return null;
 
-    const [profile, webhookPayload, badgePayload] = await Promise.all([
+    const [profile, webhookPayload, badgePayload, carbonPayload] = await Promise.all([
       apiRequest("/satici/profil", { headers: { Authorization: `Bearer ${token}` } }),
       apiRequest("/satici/webhook-logs", { headers: { Authorization: `Bearer ${token}` } }),
       apiRequest("/satici/rozet", { headers: { Authorization: `Bearer ${token}` } }),
+      apiRequest("/satici/karbon/son-analiz", { headers: { Authorization: `Bearer ${token}` } }),
     ]);
 
     const company = (profile?.sirket_adi || "").trim();
@@ -265,7 +269,44 @@ async function fetchDashboardGreetingData() {
       return Number.isFinite(ts) && ts >= monthStart;
     }).length;
 
+    // Karbon localStorage cache'ini API verisiyle senkronize et.
+    const carbonAnaliz = carbonPayload?.analiz || null;
+    if (!carbonAnaliz) {
+      try { localStorage.removeItem(SELLER_CARBON_RESULT_KEY); } catch (e) { /* ignore */ }
+    } else {
+      const freshCarbon = {
+        total: carbonAnaliz.total,
+        breakdown: carbonAnaliz.breakdown,
+        ozet: carbonAnaliz.ozet,
+        capturedAt: carbonAnaliz.olusturulma,
+      };
+      try { localStorage.setItem(SELLER_CARBON_RESULT_KEY, JSON.stringify(freshCarbon)); } catch (e) { /* ignore */ }
+    }
+
     const activeBadge = badgePayload?.aktif_rozet || null;
+
+    // API'den gelen rozet durumuna göre localStorage cache'ini senkronize et.
+    // Yeni kullanıcı veya farklı kullanıcı oturum açtığında eski cache temizlenir.
+    if (!activeBadge) {
+      try { localStorage.removeItem(VERIFICATION_RESULT_KEY); } catch (e) { /* ignore */ }
+    } else {
+      const apiBelgeler = Array.isArray(badgePayload?.belgeler) ? badgePayload.belgeler : [];
+      const freshResult = {
+        status: "completed",
+        score: activeBadge.skor || 0,
+        tier: activeBadge.tier || 0,
+        badgeId: activeBadge.rozet_id || "—",
+        earnedAt: activeBadge.kazanim_tarihi ? activeBadge.kazanim_tarihi.slice(0, 10) : "—",
+        validUntil: activeBadge.gecerlilik_sonu ? activeBadge.gecerlilik_sonu.slice(0, 10) : "—",
+        trustScore: activeBadge.guven_skoru || activeBadge.skor || 0,
+        answers: activeBadge.cevaplar || {},
+        breakdown: Array.isArray(activeBadge.kirilim) ? activeBadge.kirilim : [],
+        certs: apiBelgeler.map((b) => ({ id: b.soru_id, title: b.soru_id, name: b.dosya_adi })),
+        ai: activeBadge.ai_analiz || null,
+      };
+      try { localStorage.setItem(VERIFICATION_RESULT_KEY, JSON.stringify(freshResult)); } catch (e) { /* ignore */ }
+    }
+
     const tier = Number(activeBadge?.tier || 0);
     const detailText = tier > 0
       ? `Bu ay ${fmtNum(monthlySales)} yesil urun satisi yaptin. Mevcut rozet seviyen Tier ${tier}.`
@@ -633,6 +674,14 @@ function getAiRoadmapCardMarkup(roadmapData) {
       + '<div class="progress-bar dash-road-progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>'
       + '<span class="dash-road-pct">%' + pct + '</span>'
     + '</div>'
+    + (roadmapData.ozet
+        ? '<div class="dash-road-ozet">'
+            + (roadmapData.tier || roadmapData.skor
+                ? '<div class="dash-road-ozet-meta">Tier ' + roadmapData.tier + ' · Skor ' + roadmapData.skor + '/100</div>'
+                : '')
+            + '<p class="dash-road-ozet-text">' + roadmapData.ozet + '</p>'
+          + '</div>'
+        : '')
     + '<div class="dash-road-grid">' + stepsHtml + '</div>'
     + '</div>';
 }
@@ -1182,13 +1231,13 @@ function bindCarbonUploadEvents() {
     setCarbState("upload");
   });
 
-  // Load: önce localStorage cache, yoksa DB'den çek
+  // Önce cache varsa hemen göster (optimistic), ardından her zaman API ile doğrula.
+  // Farklı kullanıcı oturumu açıldığında API cevabı eski cache'i temizler.
   var cached = getStoredCarbonResult();
   if (cached) {
     renderCO2ResultFromData(cached);
-  } else {
-    _fetchAndRenderCarbonResult();
   }
+  _fetchAndRenderCarbonResult();
 }
 
 async function _fetchAndRenderCarbonResult() {
@@ -1199,7 +1248,20 @@ async function _fetchAndRenderCarbonResult() {
     var res = await fetch(base + "/satici/karbon/son-analiz", { headers: { "Authorization": "Bearer " + token } });
     if (!res.ok) return;
     var data = await res.json();
-    if (!data.analiz) return;
+    if (!data.analiz) {
+      try { localStorage.removeItem(SELLER_CARBON_RESULT_KEY); } catch (e) { /* ignore */ }
+      var card = document.querySelector(".area-carb");
+      if (card) {
+        card.setAttribute("data-carb-state", "upload");
+        ["carb-upload-zone", "carb-analyzing", "carb-result"].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.style.display = id === "carb-upload-zone" ? "" : "none";
+        });
+        var summaryEl = document.getElementById("co2-summary");
+        if (summaryEl) summaryEl.innerHTML = "";
+      }
+      return;
+    }
     var result = {
       total: data.analiz.total,
       breakdown: data.analiz.breakdown,

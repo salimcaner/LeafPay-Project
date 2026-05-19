@@ -404,6 +404,16 @@ function getStatisticsMarkup(stats) {
   const uniqueUsers = stats ? stats.uniqueUsers : 0;
   const logs = stats ? stats.logs : [];
 
+  let companyName = "";
+  try { companyName = (localStorage.getItem("leafpay_company") || "").trim(); } catch (e) { /* ignore */ }
+  if (!companyName) {
+    try {
+      const authState = typeof getAuthState === "function" ? getAuthState() : null;
+      companyName = (authState?.user?.sirket_adi || "").trim();
+    } catch (e) { /* ignore */ }
+  }
+  const siteLabel = companyName ? companyName + " Sitesi" : "Şirket Web Sitesi";
+
   const veraDisplay = fmtVeraStat(vera);
   const kuponDisplay = fmtVeraStat(Math.round(vera / 10));
   const veraProgress = Math.min(100, vera > 0 ? Math.round((vera / 2000000) * 100) : 0);
@@ -572,8 +582,8 @@ function getStatisticsMarkup(stats) {
               <div class="flex-1 min-w-[200px] bg-leaf-50 border border-leaf-200 rounded-2xl px-4 py-3">
                 <div class="eyebrow">En Yüksek Dönüşüm</div>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="font-black text-leaf-900 text-xl tabular-nums">%79,4</span>
-                  <span class="text-xs text-leaf-700 font-semibold">LeafPay Marketplace</span>
+                  <span class="font-black text-leaf-900 text-xl tabular-nums">%57,8</span>
+                  <span class="text-xs text-leaf-700 font-semibold">${siteLabel}</span>
                 </div>
               </div>
               <div class="flex-1 min-w-[200px] bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
@@ -586,24 +596,16 @@ function getStatisticsMarkup(stats) {
               <div class="flex-1 min-w-[200px] bg-white border border-leaf-100 rounded-2xl px-4 py-3">
                 <div class="eyebrow">Toplam Sipariş</div>
                 <div class="mt-1 flex items-baseline gap-2">
-                  <span class="font-black text-leaf-900 text-xl tabular-nums">1.847</span>
-                  <span class="text-xs text-leaf-800/60 font-mono">6 kanal · 988 yeşil</span>
+                  <span class="font-black text-leaf-900 text-xl tabular-nums">1.205</span>
+                  <span class="text-xs text-leaf-800/60 font-mono">5 kanal · 478 yeşil</span>
                 </div>
               </div>
             </div>
             <div>
               <div class="plat-row">
-                <div class="plat-glyph" style="background:#1D9E75;">LP</div>
-                <div class="plat-body">
-                  <div><div class="plat-name">LeafPay Marketplace</div><div class="plat-meta">642 sipariş · 510 yeşil seçim</div></div>
-                  <div class="plat-track"><div class="plat-fill" style="width:79.4%; background:#1D9E75;"></div></div>
-                  <div class="plat-pct">%79,4</div>
-                </div>
-              </div>
-              <div class="plat-row">
                 <div class="plat-glyph" style="background:#168562;">DW</div>
                 <div class="plat-body">
-                  <div><div class="plat-name">Direkt Web Sitesi</div><div class="plat-meta">185 sipariş · 107 yeşil seçim</div></div>
+                  <div><div class="plat-name">${siteLabel}</div><div class="plat-meta">185 sipariş · 107 yeşil seçim</div></div>
                   <div class="plat-track"><div class="plat-fill" style="width:57.8%; background:#168562;"></div></div>
                   <div class="plat-pct">%57,8</div>
                 </div>
@@ -646,7 +648,7 @@ function getStatisticsMarkup(stats) {
                 <svg class="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
               </div>
               <div>
-                <div class="font-bold text-leaf-900">Çıkarım: LeafPay kanalında dönüşüm 2,1× daha yüksek.</div>
+                <div class="font-bold text-leaf-900">Çıkarım: Kendi sitende dönüşüm diğer kanallara göre belirgin daha yüksek.</div>
                 <div class="text-leaf-800/65 mt-0.5">Yeşil seçimi varsayılan + öne çıkan kampanyalar, dönüşümü Trendyol/Hepsiburada'ya göre belirgin artırıyor. Diğer kanallarda da "yeşil seçenek" rozetini öne çıkarmayı öneriyoruz.</div>
               </div>
             </div>

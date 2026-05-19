@@ -98,28 +98,33 @@ function aiBuildCarbonRecommendations(carbonResult) {
 
 function aiBuildTopActions(result) {
   const tier = result ? Number(result.tier) : 1;
-  const tierMap = {
-    1: "Tier 2 için karbon ayak izini azaltmaya yönelik bir sertifika veya belge edinmeyi hedefleyin",
-    2: "Tier 3 için yenilenebilir enerji kullanımını belgeleyin ve akredite bir kuruluştan onay alın",
-    3: "Mevcut Tier 3 seviyenizi koruyun; yıllık yenileme sürecinizi ve belge geçerlilik tarihlerini takip edin",
+
+  // Her tier için 3 farklı konu: sertifikasyon, operasyon, raporlama
+  const sertifikaMap = {
+    1: "ISO 14064-1 veya GHG Protocol standardına göre karbon envanteri çıkarın; bu belge Tier 2 başvurusunun temelidir",
+    2: "SBTi veya CDP platformuna başvurun; bilime dayalı hedefler Tier 3 geçişi için zorunludur",
+    3: "Mevcut sertifikalarınızın yenileme tarihlerini takvime ekleyin; gecikme doğrudan tier kaybına yol açar",
   };
-  const tierProgressMap = {
-    1: "Tier 2 geçişini önceliklendirin; belgeleme planınızı bu hafta oluşturun",
-    2: "Tier 3'e geçiş planına öncelik verin ve belgeleme sürecinizi hızlandırın",
-    3: "Tier 3 seviyenizi koruyun ve sertifikalarınızın yenileme tarihlerini takip edin",
+  const operasyonMap = {
+    1: "Elektrik, yakıt ve atık tüketimini takip eden basit bir aylık ölçüm süreci kurun",
+    2: "Tedarik zinciri (Kapsam 3) emisyonlarınızı haritalandırın; bu alan genellikle en büyük eksik noktadır",
+    3: "Sürdürülebilirlik verilerinizi müşteri ve tedarikçi iletişiminde aktif olarak kullanmaya başlayın",
   };
-  const tierReportMap = {
-    1: "Aylık sürdürülebilirlik metriklerinizi kayıt altına almaya başlayın; raporlama alışkanlığı tier geçişini hızlandırır",
+  const raporlamaMap = {
+    1: "Aylık sürdürülebilirlik metriklerinizi kayıt altına almaya başlayın; düzenli veri olmadan tier geçişi zorlaşır",
     2: "Çeyrek bazlı sürdürülebilirlik raporu hazırlayın; bu belgeler Tier 3 değerlendirmesinde doğrudan kullanılır",
-    3: "Yıllık sürdürülebilirlik raporunuzu yayınlayın ve paydaşlarınızla paylaşın",
+    3: "Yıllık sürdürülebilirlik raporunuzu yayınlayın ve GRI veya TCFD çerçevesine uygunluğunu kontrol edin",
   };
-  const firstAction = tierMap[tier] || tierMap[1];
-  const pinnedAction = tierProgressMap[tier] || tierProgressMap[1];
-  const reportAction = tierReportMap[tier] || tierReportMap[1];
+
+  const sertifika = sertifikaMap[tier] || sertifikaMap[1];
+  const operasyon = operasyonMap[tier] || operasyonMap[1];
+  const raporlama = raporlamaMap[tier] || raporlamaMap[1];
+
   const aiActions = (result && result.ai && Array.isArray(result.ai.oneriler))
     ? result.ai.oneriler.slice(0, 2)
     : [];
-  return [firstAction, pinnedAction, ...aiActions, reportAction].slice(0, 5);
+
+  return [sertifika, operasyon, ...aiActions, raporlama].slice(0, 5);
 }
 
 const _EMPTY_ANALYSIS = `<div class="roadmap-card"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><div class="font-bold text-leaf-900">AI analizi henüz üretilmedi</div><div class="text-sm text-leaf-800/60 mt-2">Doğrulama testini tamamladığında AI gerçek analizi burada gösterir.</div></div></div>`;

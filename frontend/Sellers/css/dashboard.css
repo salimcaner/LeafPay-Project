@@ -96,6 +96,10 @@ body[data-layout="b"] .area-carb {
 .dash-road-progress-bar { flex:1; height:8px !important; }
 .dash-road-pct { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#168562; flex-shrink:0; min-width:32px; text-align:right; }
 
+.dash-road-ozet { background:#F0F9F4; border:1.5px solid #C8E9D8; border-radius:14px; padding:14px 16px; }
+.dash-road-ozet-meta { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#168562; margin-bottom:6px; }
+.dash-road-ozet-text { font-size:13px; color:#1E4D39; line-height:1.6; margin:0; }
+
 .dash-road-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px; }
 
 .dash-road-step { border:1.5px solid #E8F5EE; border-radius:16px; padding:14px 14px 14px 12px; background:#FAFCFB; display:flex; gap:10px; align-items:flex-start; transition:border-color .2s, background .2s; }
