@@ -331,6 +331,11 @@ function renderBadgeCompleted(root, result) {
           </div>
         </div>
 
+        <!-- TIER YÜKSELTMEti -->
+        <div class="badge-area-upgrade badge-card" id="bs-upgrade-card">
+          ${bsUpgradeCardMarkup(tier)}
+        </div>
+
         <!-- TIERS -->
         <div class="badge-area-tiers badge-card">
           <div class="flex items-end justify-between mb-5 flex-wrap gap-3">
@@ -541,6 +546,244 @@ function renderBadgeCompleted(root, result) {
   `;
 
   if (typeof applyCompanyInfo === "function") applyCompanyInfo();
+  bsBindUpgradeEvents(result);
+}
+
+/* ============================================================
+ * TİER YÜKSELTME KARTI
+ * ============================================================ */
+function bsUpgradeCardMarkup(currentTier) {
+  const stepHtml = (label, state) => {
+    const cls = state === "active" ? "active" : state === "done" ? "done" : "locked";
+    const icon = state === "done" ? "✓ " : "";
+    return `<span class="upgrade-step ${cls}">${icon}${escapeHtml(label)}</span>`;
+  };
+  const arrowHtml = `<span class="upgrade-step-arrow">→</span>`;
+
+  const steps = `
+    <div class="upgrade-steps">
+      ${stepHtml("Tier 1", currentTier > 1 ? "done" : "active")}
+      ${arrowHtml}
+      ${stepHtml("Tier 2", currentTier === 2 ? "active" : currentTier > 2 ? "done" : "locked")}
+      ${arrowHtml}
+      ${stepHtml("Tier 3", currentTier === 3 ? "active" : "locked")}
+    </div>
+  `;
+
+  if (currentTier >= 3) {
+    return `
+      <div class="flex items-start justify-between flex-wrap gap-3 mb-4">
+        <div>
+          <div class="eyebrow-mono">Tier Yükseltme</div>
+          <h3 class="font-bold text-leaf-900 mt-1 text-lg">Sertifikasyon Durumu</h3>
+        </div>
+      </div>
+      ${steps}
+      <div class="upgrade-max-banner">
+        <div class="upgrade-max-icon">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 14.5 8.5 21 9.3 16 13.9 17.3 20.5 12 17.3 6.7 20.5 8 13.9 3 9.3 9.5 8.5z"/></svg>
+        </div>
+        <div>
+          <div class="font-bold text-sm text-leaf-900">En yüksek sertifikasyon seviyesindesiniz</div>
+          <div class="text-xs text-leaf-800/60 mt-0.5">Tier 3 — Doğrulanmış statüsüne ulaştınız. Tebrikler!</div>
+        </div>
+      </div>
+    `;
+  }
+
+  const nextTier = currentTier + 1;
+
+  return `
+    <div class="flex items-start justify-between flex-wrap gap-3 mb-4">
+      <div>
+        <div class="eyebrow-mono">Tier Yükseltme</div>
+        <h3 class="font-bold text-leaf-900 mt-1 text-lg">Tier ${nextTier}'e yükselt</h3>
+        <p class="text-xs text-leaf-800/60 mt-1">Sertifika belgenizi yükleyin. AI belgeyi analiz eder, uygunsa tierınız otomatik yükselir.</p>
+      </div>
+      <span class="pill-mono">PDF · JPG · PNG · 50 MB</span>
+    </div>
+    ${steps}
+    <div class="mt-4">
+      <input type="file" id="upg-file-input" class="hidden" accept=".pdf,.jpg,.jpeg,.png" />
+      <div id="upg-drop-zone" class="bs-esg-drop" style="padding:28px 24px;">
+        <div id="upg-drop-content">
+          <div class="bs-esg-icon-wrap" style="width:48px;height:48px;margin-bottom:12px;">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="font-semibold text-sm text-leaf-900">Belge yükle</div>
+          <div class="text-xs text-leaf-800/55 font-mono mt-1">PDF · JPG · PNG · Maks. 50 MB</div>
+        </div>
+      </div>
+      <div id="upg-error" class="bs-esg-error"></div>
+      <button id="upg-analyze-btn" class="bs-analyze-btn" disabled>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Belgeyi Doğrula
+      </button>
+    </div>
+    <div id="upg-result" style="display:none;margin-top:14px;"></div>
+  `;
+}
+
+function bsBindUpgradeEvents(currentResult) {
+  const card = document.getElementById("bs-upgrade-card");
+  if (!card) return;
+
+  const fileInput = card.querySelector("#upg-file-input");
+  const dropZone  = card.querySelector("#upg-drop-zone");
+  const analyzeBtn = card.querySelector("#upg-analyze-btn");
+  const errorEl   = card.querySelector("#upg-error");
+  if (!fileInput || !dropZone || !analyzeBtn) return;
+
+  let selectedFile = null;
+
+  dropZone.addEventListener("click", () => fileInput.click());
+  dropZone.addEventListener("dragover",  (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault(); dropZone.classList.remove("drag-over");
+    const f = e.dataTransfer?.files[0];
+    if (f) _upgSetFile(f, dropZone, errorEl, analyzeBtn, (x) => { selectedFile = x; });
+  });
+  fileInput.addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (f) _upgSetFile(f, dropZone, errorEl, analyzeBtn, (x) => { selectedFile = x; });
+  });
+  analyzeBtn.addEventListener("click", () => {
+    if (selectedFile) bsHandleTierUpgrade(selectedFile, card, currentResult);
+  });
+}
+
+function _upgSetFile(file, dropZone, errorEl, analyzeBtn, onSet) {
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  if (!["pdf","jpg","jpeg","png"].includes(ext)) {
+    errorEl.textContent = "Desteklenmeyen dosya türü. PDF, JPG veya PNG yükleyin.";
+    errorEl.style.display = "block"; return;
+  }
+  if (file.size > 50 * 1024 * 1024) {
+    errorEl.textContent = "Dosya boyutu 50 MB sınırını aşıyor.";
+    errorEl.style.display = "block"; return;
+  }
+  errorEl.style.display = "none";
+  onSet(file);
+
+  const sizeFmt = file.size < 1024 * 1024
+    ? (file.size / 1024).toFixed(0) + " KB"
+    : (file.size / (1024 * 1024)).toFixed(1) + " MB";
+
+  dropZone.classList.add("has-file");
+  dropZone.querySelector("#upg-drop-content").innerHTML = `
+    <div class="bs-esg-file-row">
+      <div class="bs-esg-file-icon">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <div class="text-left">
+        <div class="font-semibold text-sm text-leaf-900">${escapeHtml(file.name)}</div>
+        <div class="text-xs font-mono text-leaf-800/55 mt-0.5">${escapeHtml(sizeFmt)} · ${ext.toUpperCase()}</div>
+      </div>
+      <button class="bs-esg-remove" id="upg-remove-btn" title="Kaldır">✕</button>
+    </div>
+  `;
+  dropZone.querySelector("#upg-remove-btn").addEventListener("click", (e) => {
+    e.stopPropagation(); onSet(null);
+    dropZone.classList.remove("has-file");
+    dropZone.querySelector("#upg-drop-content").innerHTML = `
+      <div class="bs-esg-icon-wrap" style="width:48px;height:48px;margin-bottom:12px;">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="font-semibold text-sm text-leaf-900">Belge yükle</div>
+      <div class="text-xs text-leaf-800/55 font-mono mt-1">PDF · JPG · PNG · Maks. 50 MB</div>
+    `;
+    analyzeBtn.disabled = true;
+  });
+  analyzeBtn.disabled = false;
+}
+
+async function bsHandleTierUpgrade(file, card, currentResult) {
+  const analyzeBtn = card.querySelector("#upg-analyze-btn");
+  const dropZone   = card.querySelector("#upg-drop-zone");
+  const resultEl   = card.querySelector("#upg-result");
+
+  if (analyzeBtn) { analyzeBtn.disabled = true; analyzeBtn.innerHTML = `<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg> Analiz ediliyor...`; }
+  if (dropZone) dropZone.style.pointerEvents = "none";
+
+  try {
+    const token = (typeof getAuthState === "function") ? (getAuthState().token || "") : "";
+    const base  = (typeof getApiBaseUrl === "function") ? getApiBaseUrl() : "";
+
+    const formData = new FormData();
+    formData.append("dosya", file);
+
+    const res = await fetch(base + "/satici/rozet/tier-yukselme", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token },
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      _bsUpgradeShowError(card, analyzeBtn, dropZone, data.detail || "Sunucu hatası.");
+      return;
+    }
+
+    if (!data.yukseltildi) {
+      _bsUpgradeShowError(card, analyzeBtn, dropZone, data.mesaj || "Belge uygun değil.");
+      return;
+    }
+
+    const yeniTier = data.yeni_tier;
+    const docType  = data.analiz?.document_type || "Belge";
+    const issuer   = data.analiz?.issuing_body   || "";
+
+    if (currentResult) {
+      currentResult.tier = yeniTier;
+      try { localStorage.setItem(BS_RESULT_KEY, JSON.stringify(currentResult)); } catch (e) {}
+    }
+
+    if (resultEl) {
+      resultEl.style.display = "block";
+      resultEl.innerHTML = `
+        <div class="upgrade-success-banner">
+          <div class="upgrade-success-icon">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div>
+            <div class="font-bold text-sm text-leaf-900">Tier ${yeniTier}'e yükseltildiniz!</div>
+            <div class="text-xs text-leaf-800/60 mt-0.5">${escapeHtml(docType)}${issuer ? " · " + escapeHtml(issuer) : ""} doğrulandı.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    setTimeout(() => {
+      const root = document.getElementById("dashboard-root");
+      if (root && currentResult) {
+        renderBadgeCompleted(root, currentResult);
+        bindBadgeStatusEvents();
+      }
+    }, 1500);
+
+  } catch (err) {
+    _bsUpgradeShowError(card, analyzeBtn, dropZone, "Bağlantı hatası. Tekrar deneyin.");
+  }
+}
+
+function _bsUpgradeShowError(card, analyzeBtn, dropZone, message) {
+  if (analyzeBtn) {
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Belgeyi Doğrula`;
+  }
+  if (dropZone) dropZone.style.pointerEvents = "";
+  const errEl = card.querySelector("#upg-error");
+  if (errEl) { errEl.textContent = message; errEl.style.display = "block"; }
 }
 
 function bindBadgeStatusEvents() {

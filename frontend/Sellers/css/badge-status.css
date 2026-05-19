@@ -18,23 +18,26 @@
   grid-template-areas:
     "hero hero hero hero hero hero hero hero hero hero hero hero"
     "tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers"
+    "upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade"
     "test test test test test test test test test test test test"
     "trust trust trust trust trust certs certs certs certs certs certs certs"
     "time time time time time time time time embed embed embed embed";
 }
-.badge-area-hero  { grid-area: hero; }
-.badge-area-tiers { grid-area: tiers; }
-.badge-area-test  { grid-area: test; }
-.badge-area-trust { grid-area: trust; }
-.badge-area-certs { grid-area: certs; }
-.badge-area-time  { grid-area: time; }
-.badge-area-embed { grid-area: embed; }
+.badge-area-hero    { grid-area: hero; }
+.badge-area-tiers   { grid-area: tiers; }
+.badge-area-upgrade { grid-area: upgrade; }
+.badge-area-test    { grid-area: test; }
+.badge-area-trust   { grid-area: trust; }
+.badge-area-certs   { grid-area: certs; }
+.badge-area-time    { grid-area: time; }
+.badge-area-embed   { grid-area: embed; }
 
 @media (max-width: 1180px) {
   .badge-grid {
     grid-template-areas:
       "hero hero hero hero hero hero hero hero hero hero hero hero"
       "tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers tiers"
+      "upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade upgrade"
       "test test test test test test test test test test test test"
       "trust trust trust trust trust trust certs certs certs certs certs certs"
       "time time time time time time time time time time time time"
@@ -42,8 +45,62 @@
   }
 }
 @media (max-width: 880px) {
-  .badge-grid { grid-template-areas: "hero" "tiers" "test" "trust" "certs" "time" "embed" !important; grid-template-columns: 1fr !important; }
+  .badge-grid { grid-template-areas: "hero" "tiers" "upgrade" "test" "trust" "certs" "time" "embed" !important; grid-template-columns: 1fr !important; }
 }
+
+/* ============ TİER YÜKSELTME ============ */
+.upgrade-steps { display: flex; align-items: center; gap: 0; margin-bottom: 20px; }
+.upgrade-step {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600;
+  padding: 7px 14px; border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.upgrade-step.active { background: #1D9E75; color: white; }
+.upgrade-step.done   { background: #E1F5EE; color: #085041; }
+.upgrade-step.locked { background: #F1FAF6; color: #BFE7D6; border: 1px dashed #BFE7D6; }
+.upgrade-step-arrow { color: #BFE7D6; margin: 0 4px; font-size: 14px; }
+
+.upgrade-doc-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 14px;
+  border: 1px solid #E1F5EE; background: #F8FBF9;
+  transition: border-color .15s;
+}
+.upgrade-doc-row + .upgrade-doc-row { margin-top: 8px; }
+.upgrade-doc-row.uploading { border-color: #4FB893; background: #F1FAF6; }
+.upgrade-doc-row.success   { border-color: #1D9E75; background: #F1FAF6; }
+.upgrade-doc-row.error     { border-color: #FECACA; background: #fff5f5; }
+
+.upgrade-doc-icon {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: #E1F5EE; border: 1px solid #BFE7D6;
+  display: flex; align-items: center; justify-content: center; color: #168562;
+}
+.upgrade-doc-row.error .upgrade-doc-icon { background: #FEF2F2; border-color: #FECACA; color: #EF4444; }
+
+.upgrade-doc-upload-btn {
+  margin-left: auto; flex-shrink: 0;
+  background: #1D9E75; color: white; border: 0;
+  padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  transition: background .15s; white-space: nowrap;
+}
+.upgrade-doc-upload-btn:hover { background: #168562; }
+.upgrade-doc-upload-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.upgrade-success-banner {
+  display: flex; align-items: center; gap: 12px;
+  background: #F1FAF6; border: 1px solid #BFE7D6; border-radius: 16px;
+  padding: 14px 16px; margin-top: 16px;
+}
+.upgrade-success-icon { width: 36px; height: 36px; border-radius: 50%; background: #1D9E75; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; }
+.upgrade-max-banner {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, #F1FAF6, #E1F5EE);
+  border: 1px solid #BFE7D6; border-radius: 16px; padding: 16px;
+}
+.upgrade-max-icon { width: 40px; height: 40px; border-radius: 50%; background: #EF9F27; display: flex; align-items: center; justify-content: center; color: #053A30; flex-shrink: 0; }
 
 /* TIERS */
 .tier-card { background: white; border: 1px solid #E1F5EE; border-radius: 18px; padding: 14px; position: relative; }

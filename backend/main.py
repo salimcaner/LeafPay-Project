@@ -187,20 +187,48 @@ def _rozet_id_olustur(sektor: Optional[str]) -> str:
     return f"LP-{prefix}-{yil}-{rastgele}"
 
 
-_BELGE_ANALIZ_PROMPT = f"""Sen kurumsal sürdürülebilirlik, ESG ve karbon ayak izi sertifikaları konusunda uzmanlaşmış bir belge analiz asistanısın. Görevin yüklenen belgeyi analiz edip yalnızca yapılandırılmış bir JSON çıktısı vermektir.
+_BELGE_ANALIZ_PROMPT = f"""Sen kurumsal sürdürülebilirlik, ESG ve karbon ayak izi sertifikaları konusunda uzmanlaşmış bir belge analiz ve SAHTECİLİK TESPİT asistanısın. Görevin yüklenen belgeyi analiz edip yalnızca yapılandırılmış bir JSON çıktısı vermektir.
 
 Hedeflenen belge türleri:
 - Tier 2: I-REC Sertifikası, ISO 14001, Kurumsal Karbon Ayak İzi Raporu (ISO 14064-1)
 - Tier 3: SBTi Onay Mektubu, Karbon Nötr/Net Sıfır Sertifikası (PAS 2060 / ISO 14068), CDP İklim Değişikliği Skoru (A veya A-)
 
-Kurallar:
-1. SADECE geçerli bir JSON nesnesi döndür. JSON bloğu dışında hiçbir açıklama, selamlama veya markdown işareti (```json gibi) KULLANMA.
-2. Belge sürdürülebilirlik/ESG/karbon ile TAMAMEN alakasız ise (fatura, CV, rastgele fotoğraf vb.) → "is_valid_document": false, diğer tüm değerler null.
-3. Belge sürdürülebilirlikle ilgili ancak hedef listede YOK ise (ISO 9001, OHSAS vb.) → "is_valid_document": true, "estimated_tier": null.
-4. Doğrulama numarasını (Certificate ID, Verification Code, GUID, Target ID vb.) mutlaka bulmaya çalış; yoksa null.
-5. Tarihleri her zaman "YYYY-MM-DD" formatına çevir.
-6. Bugünün tarihi: {datetime.now(timezone.utc).strftime("%Y-%m-%d")}. Bunu kullanarak is_expired hesapla.
-7. confidence_score: bilgileri ne kadar net çıkarabildiğini 0-100 arası puanla (belge net ve okunaklıysa 85+, kısmi bilgi 50-84, tahmin 0-49).
+## KRİTİK — OTANTİKLİK KONTROLÜ (önce bunu değerlendir)
+
+Belgenin gerçek ve orijinal olup olmadığını belirlemek senin en önemli görevindir. Aşağıdaki durumların HERHANGİ BİRİ varsa belgeyi SAHTE/GEÇERSİZ say ve is_valid_document: false döndür:
+
+EKRAN GÖRÜNTÜSÜ TESPİTİ:
+- Görüntüde tarayıcı adresi çubuğu, sekme, arama çubuğu veya tarayıcı UI'ı görünüyor mu?
+- Telefon/bilgisayar durum çubuğu (saat, sinyal, pil göstergesi) görünüyor mu?
+- Görselin kenarlarında işletim sistemi UI elementleri var mı (görev çubuğu, dock, pencere başlığı)?
+- Görüntü bir web sitesinin veya uygulamanın ekran görüntüsü gibi görünüyor mu?
+- Pikselasyon, JPEG artifaktları veya ekran parlaması/moiré deseni var mı?
+
+SAHTE BELGE TESPİTİ:
+- Belge, resmi kurum yazışma kağıdı/antetli kağıt formatında mı, yoksa internet sitesinden kopyalanmış gibi mi görünüyor?
+- Şirket adı, logo ve imza tutarlı ve profesyonel görünüyor mu?
+- Sertifika numarası/kodu gerçek bir format taşıyor mu? (örn. I-REC için "TR-REC-E-XXXXXX" formatı, ISO için akreditasyon numarası)
+- Belge yalnızca internette herkese açık bir kayıt/veritabanı sayfasının görseli midir? (Bu bir sertifika sayılmaz)
+- Üretici bilgileri, üretim periyodu, iptal detayları gibi teknik alanlar gerçekçi mi?
+- Font tutarlılığı, hizalama ve genel belge kalitesi profesyonel mi?
+
+ÖZGÜNLÜK GEREKSİNİMLERİ:
+- Resmi belgede mutlaka: yetkili imza veya mühür, benzersiz sertifika ID, düzenleyen kurum logosu olmalı
+- I-REC için: üretim tesisi adı, teknoloji türü, ülke, üretim periyodu, kayıt numarası zorunlu
+- ISO belgeleri için: akreditasyon numarası, denetim kuruluşu, kapsam tanımı zorunlu
+- SBTi için: şirket adı, hedef onay tarihi, hedef tipi (1.5°C/well-below 2°C) zorunlu
+
+Eğer belge yukarıdaki kriterleri tam karşılıyorsa ve orijinal görünüyorsa devam et.
+
+## GENEL KURALLAR
+
+1. SADECE geçerli bir JSON nesnesi döndür. JSON bloğu dışında hiçbir açıklama yazma.
+2. Belge sürdürülebilirlik/ESG/karbon ile TAMAMEN alakasız ise → is_valid_document: false, diğer tüm değerler null.
+3. Belge hedef listede YOK ise (ISO 9001, OHSAS vb.) → is_valid_document: true, estimated_tier: null.
+4. Doğrulama numarasını mutlaka bulmaya çalış; yoksa null.
+5. Tarihleri "YYYY-MM-DD" formatına çevir.
+6. Bugünün tarihi: {datetime.now(timezone.utc).strftime("%Y-%m-%d")}. is_expired hesapla.
+7. confidence_score: Belge NET orijinal ve tüm bilgiler eksiksizse 85+. Ekran görüntüsü şüphesi varsa MAX 40. Kısmi/belirsiz bilgi 50-84.
 
 JSON şablonu (başka hiçbir şey yazma):
 {{"is_valid_document": true/false, "document_type": "I-REC / ISO 14001 / ISO 14064-1 / SBTi / PAS 2060 / ISO 14068 / CDP vb.", "company_name": "Belgenin düzenlendiği şirketin tam adı", "issue_date": "YYYY-MM-DD", "expiry_date": "YYYY-MM-DD veya null", "is_expired": true/false/null, "verification_code": "sertifika/kayıt/doğrulama numarası veya null", "issuing_body": "TÜV / SGS / SBTi / Carbon Trust / Foton vb.", "estimated_tier": 2/3/null, "confidence_score": 0-100}}"""
@@ -640,7 +668,7 @@ async def rozet_esg_analiz(
     if not sonuc.get("is_esg_report"):
         raise HTTPException(status_code=422, detail="Yüklenen belge bir ESG veya sürdürülebilirlik raporu değil. Lütfen geçerli bir ESG raporu yükleyin.")
 
-    ai_tier = max(0, min(3, int(sonuc.get("tier", 1))))
+    ai_tier = 1  # Her değerlendirme Tier 1 ile başlar; belge yüklenerek yükseltilir
     ai_skor = max(40, min(100, int(sonuc.get("skor", 40))))
     ai_kirilim = sonuc.get("kirilim", [])
 
@@ -716,6 +744,118 @@ async def rozet_esg_analiz(
     }
 
 
+@app.post("/satici/rozet/tier-yukselme")
+async def rozet_tier_yukselme(
+    dosya: UploadFile = File(...),
+    kullanici: dict = Depends(sadece_satici),
+):
+    satici_id = kullanici["id"]
+
+    # Aktif tamamlanmış rozeti bul
+    mevcut = supabase.table("rozet_testleri") \
+        .select("test_id, tier, rozet_id") \
+        .eq("satici_id", satici_id) \
+        .eq("durum", "tamamlandi") \
+        .order("kazanim_tarihi", desc=True) \
+        .limit(1) \
+        .execute()
+
+    if not mevcut.data:
+        raise HTTPException(status_code=404, detail="Önce bir değerlendirme tamamlamalısınız.")
+
+    rozet = mevcut.data[0]
+    mevcut_tier = int(rozet["tier"])
+    test_id = rozet["test_id"]
+
+    if mevcut_tier >= 3:
+        raise HTTPException(status_code=400, detail="Zaten en yüksek sertifikasyon seviyesindesiniz (Tier 3).")
+
+    content = await dosya.read()
+    if len(content) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=422, detail="Dosya boyutu 50 MB'ı aşmamalı")
+
+    ad = (dosya.filename or "").lower()
+    mime_type = dosya.content_type or ""
+    if not mime_type or mime_type == "application/octet-stream":
+        if ad.endswith(".pdf"):             mime_type = "application/pdf"
+        elif ad.endswith((".jpg", ".jpeg")): mime_type = "image/jpeg"
+        elif ad.endswith(".png"):            mime_type = "image/png"
+
+    analiz = cagir_belge_analizi(content, mime_type)
+
+    if analiz.get("error") == "taranmis_pdf":
+        raise HTTPException(status_code=422, detail="Taranmış PDF okunamıyor. JPG veya PNG olarak deneyin.")
+
+    if not analiz.get("is_valid_document"):
+        return {
+            "yukseltildi": False,
+            "mevcut_tier": mevcut_tier,
+            "mesaj": "Belge geçerli değil veya tanınamadı. Ekran görüntüsü yerine orijinal belgeyi yükleyin.",
+            "analiz": analiz,
+        }
+
+    confidence = int(analiz.get("confidence_score", 0))
+    if confidence < 75:
+        return {
+            "yukseltildi": False,
+            "mevcut_tier": mevcut_tier,
+            "mesaj": f"Belge yeterince güvenilir değil (güven skoru: {confidence}/100). Orijinal, yüksek kaliteli belge yükleyin.",
+            "analiz": analiz,
+        }
+
+    if analiz.get("is_expired"):
+        return {
+            "yukseltildi": False,
+            "mevcut_tier": mevcut_tier,
+            "mesaj": "Belgenin geçerlilik süresi dolmuş. Güncel bir belge yükleyin.",
+            "analiz": analiz,
+        }
+
+    estimated_tier = analiz.get("estimated_tier")
+    if not estimated_tier:
+        return {
+            "yukseltildi": False,
+            "mevcut_tier": mevcut_tier,
+            "mesaj": "Belge tanındı ancak sertifikasyon tier'ı belirlenemedi.",
+            "analiz": analiz,
+        }
+
+    hedef_tier = int(estimated_tier)
+    if hedef_tier <= mevcut_tier:
+        return {
+            "yukseltildi": False,
+            "mevcut_tier": mevcut_tier,
+            "mesaj": f"Bu belge mevcut Tier {mevcut_tier} seviyenizden yüksek bir sertifikasyona karşılık gelmiyor.",
+            "analiz": analiz,
+        }
+
+    yeni_tier = min(hedef_tier, 3)
+
+    supabase.table("rozet_testleri") \
+        .update({"tier": yeni_tier, "guncelleme_tarihi": datetime.now(timezone.utc).isoformat()}) \
+        .eq("test_id", test_id) \
+        .execute()
+
+    belge = {
+        "test_id": test_id,
+        "satici_id": satici_id,
+        "soru_id": f"tier{yeni_tier}_yukselme",
+        "dosya_adi": dosya.filename or "",
+        "dosya_boyutu": len(content),
+        "storage_yolu": "",
+        "mime_tipi": mime_type,
+    }
+    supabase.table("rozet_belgeleri").insert(belge).execute()
+
+    return {
+        "yukseltildi": True,
+        "onceki_tier": mevcut_tier,
+        "yeni_tier": yeni_tier,
+        "mesaj": f"Tebrikler! Tier {yeni_tier} seviyesine yükseltildiniz.",
+        "analiz": analiz,
+    }
+
+
 @app.post("/satici/rozet/ai-analiz")
 def rozet_ai_analiz(veri: AIAnalizTalep, kullanici: dict = Depends(sadece_satici)):
     satici_id = kullanici["id"]
@@ -723,28 +863,9 @@ def rozet_ai_analiz(veri: AIAnalizTalep, kullanici: dict = Depends(sadece_satici
     gecerlilik = simdi + timedelta(days=180)
 
     ai_sonuc = cagir_gemini_analizi(veri.ozet_metin, veri.skor, veri.tier)
-    ai_tier = ai_sonuc.get("tier", veri.tier)
-    ai_skor = ai_sonuc.get("skor", veri.skor)
-
-    # Belge doğrulama kapısı: Tier 2+ için geçerli belge zorunlu
-    dogrulanan_tierlar = set()
-    for cevap in veri.cevaplar.values():
-        if isinstance(cevap, dict) and isinstance(cevap.get("analysis"), dict):
-            analiz = cevap["analysis"]
-            if analiz.get("is_valid_document") and analiz.get("estimated_tier"):
-                try:
-                    dogrulanan_tierlar.add(int(analiz["estimated_tier"]))
-                except (ValueError, TypeError):
-                    pass
-
-    if ai_tier >= 2 and 2 not in dogrulanan_tierlar:
-        ai_tier = 1
-        ai_sonuc["tier"] = 1
-        ai_sonuc["ozet"] = (ai_sonuc.get("ozet") or "") + " (Tier 2 için geçerli belge bulunamadığından Tier 1 olarak atandı.)"
-    if ai_tier >= 3 and 3 not in dogrulanan_tierlar:
-        ai_tier = 2
-        ai_sonuc["tier"] = 2
-        ai_sonuc["ozet"] = (ai_sonuc.get("ozet") or "") + " (Tier 3 için geçerli belge bulunamadığından Tier 2 olarak atandı.)"
+    ai_tier = 1  # Her değerlendirme Tier 1 ile başlar; belge yüklenerek yükseltilir
+    ai_skor = max(0, min(100, int(ai_sonuc.get("skor", veri.skor))))
+    ai_sonuc["tier"] = 1
 
     rozet_id = _rozet_id_olustur(veri.sektor)
 
