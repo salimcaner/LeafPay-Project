@@ -10,7 +10,7 @@ const loginState = {
 
 const loginRoot = document.getElementById('app-root');
 const registrationPageHref = '../registration-page/registration.html';
-const sellerDashboardHref = '../Sellers/index.html';
+const sellerDashboardHref = '/panel/';
 const customerRedirectHref = '../Customers/index.html';
 
 function getRedirectForRole(role) {
