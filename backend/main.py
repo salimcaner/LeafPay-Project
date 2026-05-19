@@ -13,7 +13,7 @@ load_dotenv()
 from fastapi import FastAPI, HTTPException, Depends, Header, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from schemas import SaticiKayit, MusteriKayit, GirisYap, WebhookPayload, RozetTaslakKayit, RozetTamamla, AIAnalizTalep
+from schemas import SaticiKayit, MusteriKayit, GirisYap, WebhookPayload, RozetTaslakKayit, RozetTamamla, AIAnalizTalep, AksiyelAciklaRequest
 from typing import Optional
 from database import supabase
 from security import sifreyi_hashle, sifreyi_dogrula, token_olustur, token_dogrula
@@ -854,6 +854,46 @@ async def rozet_tier_yukselme(
         "mesaj": f"Tebrikler! Tier {yeni_tier} seviyesine yükseltildiniz.",
         "analiz": analiz,
     }
+
+
+@app.post("/satici/rozet/aksiyon-acikla")
+def rozet_aksiyon_acikla(veri: AksiyelAciklaRequest, kullanici: dict = Depends(sadece_satici)):
+    prompt = f"""Sen bir sürdürülebilirlik danışmanısın. Türkçe konuşan bir e-ticaret satıcısına rehberlik ediyorsun.
+
+Mevcut Tier: {veri.tier}
+Aksiyon Adımı: {veri.aksiyon}
+
+Bu aksiyonu 2-3 kısa cümleyle açıkla:
+- Bu adımın neden önemli olduğunu belirt
+- Satıcının somut olarak ne yapması gerektiğini söyle
+- Başlamak için pratik bir ipucu ver
+
+Sadece JSON formatında yanıt ver: {{"aciklama": "..."}}"""
+
+    yanit = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {GEMINI_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": "google/gemini-2.0-flash-001",
+            "messages": [{"role": "user", "content": prompt}],
+            "response_format": {"type": "json_object"},
+            "max_tokens": 300,
+        },
+        timeout=20,
+    )
+
+    if not yanit.ok:
+        raise HTTPException(status_code=502, detail="AI servisi yanıt vermedi")
+
+    try:
+        icerik = yanit.json()["choices"][0]["message"]["content"]
+        veri_json = json.loads(icerik)
+        return {"aciklama": veri_json.get("aciklama", "Açıklama üretilemedi.")}
+    except Exception:
+        raise HTTPException(status_code=502, detail="AI yanıtı işlenemedi")
 
 
 @app.post("/satici/rozet/ai-analiz")

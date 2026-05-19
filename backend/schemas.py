@@ -64,6 +64,11 @@ class AIAnalizTalep(BaseModel):
     kirilim: List[RozetKirilimMaddesi]
 
 
+class AksiyelAciklaRequest(BaseModel):
+    aksiyon: str
+    tier: int
+
+
 class MusteriKayit(BaseModel):
     musteri_ad: str
     musteri_soyad: str
