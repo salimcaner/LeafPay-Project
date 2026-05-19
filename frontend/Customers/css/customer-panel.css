@@ -66,6 +66,60 @@ body[data-customer-accent="dark"] {
   gap: 18px;
 }
 
+/* Dashboard top: hero card left, 2x2 stats right */
+.dashboard-top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 0.8fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.dashboard-stats-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* Dashboard bottom: 2 equal-width tall cards */
+.dashboard-bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.dashboard-bottom-grid .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-bottom-grid .mini-list {
+  flex: 1;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid #E1F5EE;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -8px rgba(8, 80, 65, 0.1);
+  border-color: #BFE7D6;
+}
+
+/* Legacy aliases kept for wallet/other views */
 .hero-grid {
   grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
   align-items: stretch;
@@ -75,20 +129,6 @@ body[data-customer-accent="dark"] {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 20px;
-  padding: 18px;
-  border: 1px solid #E1F5EE;
-  transition: all 0.2s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px -8px rgba(8, 80, 65, 0.1);
-  border-color: #BFE7D6;
 }
 
 .section-grid {
@@ -350,8 +390,18 @@ body[data-customer-accent="dark"] {
 @media (max-width: 1140px) {
   .hero-grid,
   .section-grid,
-  .profile-grid {
+  .profile-grid,
+  .dashboard-top-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-bottom-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-stats-col {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: auto;
   }
 
   .stats-grid {
@@ -372,7 +422,9 @@ body[data-customer-accent="dark"] {
   .stats-grid,
   .impact-grid,
   .choice-grid,
-  .field-row {
+  .field-row,
+  .dashboard-bottom-grid,
+  .dashboard-stats-col {
     grid-template-columns: 1fr;
   }
 }

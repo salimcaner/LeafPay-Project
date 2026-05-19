@@ -1,9 +1,6 @@
 const CUSTOMER_RENDERERS = {
   dashboard: renderCustomerDashboard,
   wallet: renderWalletView,
-  "green-choices": renderGreenChoicesView,
-  orders: renderOrdersView,
-  campaigns: renderCampaignsView,
   profile: renderProfileView,
 };
 

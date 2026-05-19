@@ -22,19 +22,7 @@ function renderCustomerSidebar() {
         </a>
         <a href="#" class="sidebar-link" data-nav="wallet">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"></path><path d="M16 5v5h5"></path></svg>
-          VERA Cuzdani
-        </a>
-        <a href="#" class="sidebar-link" data-nav="green-choices">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3C7.46 19.79 8.79 20 10 20a8 8 0 0 0 8-8c0-2-1-3.83-1-3.83Z"/></svg>
-          Yesil Secimlerim
-        </a>
-        <a href="#" class="sidebar-link" data-nav="orders">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"></path><path d="M14 2v6h6"></path></svg>
-          Siparislerim
-        </a>
-        <a href="#" class="sidebar-link" data-nav="campaigns">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18"></path><path d="M7 7h.01M17 17h.01"></path><path d="M7 7 3 12l4 5 10-10 4 5-4 5H7l-4-5 4-5"></path></svg>
-          Kampanyalar
+          VERA Cüzdanı
         </a>
       </nav>
     </div>
@@ -48,7 +36,7 @@ function renderCustomerSidebar() {
             <div class="text-[11px] font-mono text-leaf-600 truncate mt-0.5">VERA Club · Aktif</div>
           </div>
         </a>
-        <button type="button" data-logout-button class="w-9 h-9 rounded-[10px] border border-leaf-200 bg-white flex items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors flex-shrink-0 shadow-sm text-leaf-700 hover:text-red-700" aria-label="Cikis yap">
+        <button type="button" data-logout-button class="w-9 h-9 rounded-[10px] border border-leaf-200 bg-white flex items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors flex-shrink-0 shadow-sm text-leaf-700 hover:text-red-700" aria-label="Çıkış yap">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
       </div>
@@ -63,7 +51,7 @@ function renderCustomerTopbar() {
   topbar.className = "topbar nav-blur bg-paper/80 border-b border-leaf-100";
   topbar.innerHTML = `
     <div class="flex items-center gap-3">
-      <button type="button" class="mobile-menu-button lg:hidden" data-open-sidebar aria-label="Menuyu ac">
+      <button type="button" class="mobile-menu-button lg:hidden" data-open-sidebar aria-label="Menüyü aç">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
       <div>
@@ -75,7 +63,7 @@ function renderCustomerTopbar() {
     <div class="flex items-center gap-3">
       <span class="hidden sm:flex items-center gap-1.5 text-xs font-mono text-leaf-700 bg-leaf-50 border border-leaf-200 px-3 py-1.5 rounded-full">
         <span class="w-1.5 h-1.5 rounded-full bg-leaf-500 animate-pulse"></span>
-        18 Mayis 2026
+        18 Mayıs 2026
       </span>
       <div class="profile-menu">
         <button type="button" data-profile-toggle class="flex items-center gap-1.5 pl-0.5 pr-2 py-0.5 rounded-full hover:bg-leaf-50 border border-transparent hover:border-leaf-200 transition group">
@@ -88,7 +76,7 @@ function renderCustomerTopbar() {
           </a>
           <a href="../login-page/login.html" data-logout-link class="danger hover:bg-red-50 transition-colors">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            Cikis Yap
+            Çıkış Yap
           </a>
         </div>
       </div>
@@ -134,7 +122,7 @@ function bindCustomerLayoutEvents(onNavigate) {
     const backdrop = document.createElement("button");
     backdrop.type = "button";
     backdrop.className = "mobile-sidebar-backdrop";
-    backdrop.setAttribute("aria-label", "Menuyu kapat");
+    backdrop.setAttribute("aria-label", "Menüyü kapat");
     document.body.appendChild(backdrop);
     backdrop.addEventListener("click", () => document.body.classList.remove("sidebar-open"));
   }
