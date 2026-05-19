@@ -7,7 +7,7 @@ from fastapi import HTTPException
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-_MODEL = "google/gemini-2.0-flash-001"
+_MODEL = "google/gemini-2.5-flash"
 
 
 def openrouter_cagir(
