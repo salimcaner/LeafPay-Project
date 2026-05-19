@@ -243,6 +243,36 @@ def _pdf_metni_cikart(content: bytes) -> str:
         return ""
 
 
+def _pdf_sayfalari_goruntu_olarak(content: bytes, max_sayfa: int = 30, dpi: int = 72) -> list:
+    """Taranmış PDF sayfalarını PNG görüntüsü olarak render eder (pymupdf).
+
+    PDF'in tamamı max_sayfa'dan azsa hepsi gönderilir.
+    Fazlaysa raporu baştan sona temsil edecek şekilde eşit aralıklı örnekleme yapılır.
+    """
+    try:
+        import fitz  # pymupdf
+        doc = fitz.open(stream=content, filetype="pdf")
+        toplam = len(doc)
+
+        if toplam <= max_sayfa:
+            indeksler = list(range(toplam))
+        else:
+            # 0'dan toplam-1'e max_sayfa adet eşit aralıklı indeks
+            indeksler = sorted({round(i * (toplam - 1) / (max_sayfa - 1)) for i in range(max_sayfa)})
+
+        mat = fitz.Matrix(dpi / 72, dpi / 72)
+        gorseller = []
+        for i in indeksler:
+            pix = doc[i].get_pixmap(matrix=mat)
+            gorseller.append(pix.tobytes("png"))
+        doc.close()
+        print(f"[ESG] {toplam} sayfalı PDF'den {len(gorseller)} sayfa örneklendi (DPI={dpi})")
+        return gorseller
+    except Exception as e:
+        print(f"[ESG] PDF sayfa render hatası: {e}")
+        return []
+
+
 def cagir_belge_analizi(content: bytes, mime_type: str) -> dict:
     hata = {"is_valid_document": False, "document_type": None, "company_name": None,
             "issue_date": None, "expiry_date": None, "is_expired": None,
@@ -359,9 +389,21 @@ def cagir_esg_analizi(content: bytes, mime_type: str) -> dict:
         ]
     elif mime_type == "application/pdf":
         metin = _pdf_metni_cikart(content)
-        if not metin or len(metin.strip()) < 50:
-            raise HTTPException(status_code=422, detail="Taranan (görüntü tabanlı) PDF desteklenmiyor. Lütfen metin içeren PDF veya JPG/PNG yükleyin.")
-        message_content = [{"type": "text", "text": f"{sistem_prompt}\n\n--- ESG RAPORU İÇERİĞİ ---\n{metin[:18000]}"}]
+        metin_uzunluk = len(metin.strip()) if metin else 0
+        print(f"[ESG] PDF metin uzunluğu: {metin_uzunluk}")
+        if metin_uzunluk >= 50:
+            message_content = [{"type": "text", "text": f"{sistem_prompt}\n\n--- ESG RAPORU İÇERİĞİ ---\n{metin[:18000]}"}]
+        else:
+            # Taranmış PDF — sayfaları görüntüye dönüştür
+            print("[ESG] Taranmış PDF, sayfa render başlıyor...")
+            gorseller = _pdf_sayfalari_goruntu_olarak(content)
+            if not gorseller:
+                raise HTTPException(status_code=422, detail="Taranan PDF işlenemedi. Lütfen JPG/PNG olarak yükleyin.")
+            print(f"[ESG] {len(gorseller)} sayfa görüntüye çevrildi, Gemini'ye gönderiliyor...")
+            message_content = [{"type": "text", "text": sistem_prompt + "\n\n[NOT: Aşağıdaki görseller taranmış bir ESG raporunun ilk sayfalarıdır.]"}]
+            for gorsel in gorseller:
+                b64 = base64.b64encode(gorsel).decode()
+                message_content.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}})
     else:
         raise HTTPException(status_code=422, detail="Desteklenmeyen dosya türü. PDF, JPG veya PNG yükleyin.")
 
