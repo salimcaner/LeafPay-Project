@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./venv/Scripts/python -m uvicorn main:app --host 127.0.0.1 --port 8765)",
+      "Bash(curl -s -o /dev/null -w \"Root: %{http_code}\\\\n\" http://127.0.0.1:8765/)",
+      "Bash(curl -s -o /dev/null -w \"Login HTML: %{http_code}\\\\n\" http://127.0.0.1:8765/login-page/login.html)",
+      "Bash(curl -s -o /dev/null -w \"Panel: %{http_code}\\\\n\" http://127.0.0.1:8765/panel/)",
+      "Bash(curl -s -o /dev/null -w \"Landing: %{http_code}\\\\n\" http://127.0.0.1:8765/landing-page/landingpage.html)"
+    ]
+  }
+}

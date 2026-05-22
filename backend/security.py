@@ -1,8 +1,10 @@
+import os
+
 import bcrypt as _bcrypt
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 
-SECRET_KEY = "leafpay-demo-secret-key-change-in-prod"
+SECRET_KEY = os.getenv("SECRET_KEY", "leafpay-demo-secret-key-change-in-prod")
 ALGORITHM = "HS256"
 TOKEN_GECERLILIK_GUN = 7
 
